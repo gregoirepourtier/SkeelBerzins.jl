@@ -1,11 +1,11 @@
 #=
 
 
-# 101: Linear Diffusion 1D
+# Example 101: Linear Diffusion 1D
 
 Solve the linear diffusion equation
 ```math
--u_t  = u_{xx}
+u_t  = u_{xx}
 ```
 for $x \in \Omega=(0,1)$ with homogeneous Neumann boundary conditions using the ODE solvers of the DifferentialEquations.jl package.
 

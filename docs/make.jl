@@ -2,14 +2,21 @@ using Documenter
 using SkeelBerzins
 
 makedocs(
-    sitename = "SkeelBerzins",
+    modules = [SkeelBerzins],
+    sitename = "SkeelBerzins.jl",
+    doctest = false, clean = true,
     format = Documenter.HTML(),
-    modules = [SkeelBerzins]
+    authors = "Grégoire Pourtier",
+    pages = ["Home" => "index.md",
+             "Manual" => ["Problem Definition" => "problem_definition.md",
+                          "Solvers" => "solvers.md",
+                          "Achieve performance" => "performance.md"
+                          "Private API" => "private_API.md"
+                         ],
+             "Examples" => "examples.md"
+            ]
 )
 
-# Documenter can also automatically deploy documentation to gh-pages.
-# See "Hosting Documentation" and deploydocs() in the Documenter manual
-# for more information.
 deploydocs(
     repo = "github.com/gregoirepourtier/SkeelBerzins.jl.git"
 )

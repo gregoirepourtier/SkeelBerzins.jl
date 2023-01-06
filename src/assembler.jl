@@ -1,4 +1,5 @@
-# Assemble the system of differential equations (operator and mass matrix)
+# Discretization of the problem according to the method introduced in [1].
+# Assemble the system of differential equations (operator and mass matrix).
 
 
 """
@@ -6,10 +7,12 @@ $(SIGNATURES)
 
 Performs space discretization following the difference equations described in [1].
 
-Assemble the right hand side ``f`` to generate an ODE/DAE problem:
+Assemble the right-hand side ``f`` to generate an ODE/DAE problem:
 ```math
 M \frac{du}{dt} = f(u,SkeelBerzins.ProblemDefinition,t)
 ```
+
+This function is specified in a way that it is compatible with the DifferentialEquations.jl package.
 """
 function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
@@ -130,7 +133,14 @@ end
 """
 $(SIGNATURES)
 
-Assemble the mass matrix M of the system of differential equations
+Assemble the diagonal mass matrix M of the system of differential equations 
+when solving a problem with at least one parabolic PDE.
+The coefficients from M either take the value 0 or 1 since it is scaled in the 
+difference equations in the right-hand side.
+
+The entries of the matrix are set to 0 when the corresponding equation of the system is elliptic
+or the boundary condition is pure Dirichlet leading to solve a Differential-Algebraic system of Equations.
+In the case where the mass matrix is identity, we solve a system of ODEs.
 """
 function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
 
@@ -156,11 +166,11 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
             M[i,2:end-1] .= 0
         end
 
-        if ql[i] == 0 && !pb.singular # For the left boundary Dirichlet BCs leads to a DAE (ignoring singular case)
+        if ql[i] == 0 && !pb.singular # For the left boundary, Dirichlet BC(s) leads to a DAE (ignoring singular case)
             M[i,1] = 0
         end
 
-        if qr[i] == 0  # For the right boundary Dirichlet BCs leads to a DAE
+        if qr[i] == 0  # For the right boundary, Dirichlet BC(s) leads to a DAE
             M[i,end] = 0
         end
     end

@@ -1,3 +1,6 @@
-# SkeelBerzins.jl
-
-Documentation for SkeelBerzins.jl
+````@eval
+using Markdown
+Markdown.parse("""
+$(read("../../README.md",String))
+""")
+````

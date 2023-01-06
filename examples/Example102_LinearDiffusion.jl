@@ -1,11 +1,11 @@
 #= 
 
 
-# 102: Linear Diffusion 1D
+# Example 102: Linear Diffusion 1D
 
 Solve the linear diffusion equation
 ```math
--u_t  = u_{xx}
+u_t  = u_{xx}
 ```
 for $x \in \Omega=(0,1)$ with homogeneous Neumann boundary conditions using the implicit Euler method (internal method).
 
