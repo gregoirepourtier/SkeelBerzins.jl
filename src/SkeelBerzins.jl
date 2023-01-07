@@ -1,7 +1,6 @@
 module SkeelBerzins
 
 using BandedMatrices
-using DifferentialEquations
 using LinearAlgebra
 using SparseArrays
 using SparseDiffTools
@@ -10,6 +9,9 @@ using ExtendableSparse
 
 using RecursiveArrayTools
 using DocStringExtensions
+
+import SciMLBase
+import DifferentialEquations
 
 # see https://github.com/JuliaDiff/SparseDiffTools.jl#note-about-sparse-differentiation-of-gpuarrays-bandedmatrices-and-blockbandedmatrices
 using ArrayInterfaceBandedMatrices

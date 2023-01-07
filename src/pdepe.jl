@@ -3,9 +3,27 @@
 
 
 """
-$(SIGNATURES)
+    pdepe(m, pdefunction, icfunction, bdfunction, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray) where {T1,T2,T3}
 
 Solve 1D elliptic and parabolic PDE(s) using the spatial discretization method described in [1].
+
+
+Input arguments:
+- `m`:
+- `pdefunction`:
+- `icfunction`:
+- `bdfunction`:
+- `xmesh`:
+- `tspan`:
+
+Keyword arguments:
+- `solver`:
+- `tstep`:
+- `hist`:
+- `sparsity`:
+
+
+Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray) or [`SkeelBerzins.ProblemDefinition`](@ref).
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray) where {T1,T2,T3}
 
@@ -221,11 +239,17 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler
 end
 
 
-# Another way to solve stationary problems 
-"""
-$(SIGNATURES)
 
-Solve 1D elliptic PDE(s) using the spatial discretization method from Skeel and Berzins
+"""
+    pdepe(m, pdefunction, icfunction, bdfunction, xmesh ; hist=false, sparsity=:sparseArray)
+
+Solve 1D elliptic using the spatial discretization method described in [1] ([`pdepe`](@ref) variant to solve stationary problems).
+
+Input arguments:
+
+
+Keyword arguments:
+
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; hist=false, sparsity=:sparseArray) where {T1,T2,T3}
 

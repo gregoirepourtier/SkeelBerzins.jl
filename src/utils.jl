@@ -2,9 +2,17 @@
 
 
 """
-$(SIGNATURES)
+    interpolation(xl, ul, xr, ur, quadrature_point, problem)
 
-Interpolate u and du/dx between two discretization points at some specific quadrature point
+Interpolate u and ``\frac{du}{dx}`` between two discretization points at some specific quadrature point.
+
+Input arguments:
+- 
+- 
+- 
+- 
+-
+- 
 """
 function interpolation(xl, ul, xr, ur, qd_point, pb)
 
@@ -42,9 +50,9 @@ end
 
 
 """
-$(SIGNATURES)
+    interpolation!(interp, d_interp, xl, ul, xr, ur, quadrature_point, problem)
 
-Mutating version of the interpolation function
+Mutating version of the [interpolation function](@ref).
 """
 function interpolation!(interp, dinterp, xl, ul, xr, ur, qd_point, pb)
 
@@ -89,9 +97,9 @@ end
 
 
 """
-$(SIGNATURES)
+$(TYPEDEF)
 
-Generate structure storing the problem definition
+Mutable structure storing the problem definition
 """
 mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, 
                                                                           icFunction<:Function, 
@@ -168,7 +176,7 @@ end
 
 
 """
-$(SIGNATURES)
+    implicitEuler!(y,u,problem,tau,mass_matrix,timeStep)
 
 Assemble the system for the implicit Euler method
 """
