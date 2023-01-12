@@ -11,7 +11,7 @@ makedocs(
              "Manual" => ["Problem Definition" => "problem_definition.md",
                           "Solvers" => "solvers.md",
                           "Achieve performance" => "performance.md",
-                          "Private API" => "private_API.md"
+                          "Public and Private APIs" => "public_private_APIs.md"
                          ],
              "Examples" => "examples.md"
             ]

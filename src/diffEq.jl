@@ -11,7 +11,7 @@ from the spatial discretization derived in the [`assemble!`](@ref) function.
 It is expressed as a [mass matrix ODE](https://docs.sciml.ai/DiffEqDocs/stable/tutorials/dae_example/)
 and defines the problem with respect to the sparsity pattern.
 
-Inputs arguments:
+Input argument:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
 function SciMLBase.ODEFunction(pb::ProblemDefinition)
@@ -23,9 +23,9 @@ end
     ODEProblem(problem,callback=DifferentialEquations.CallbackSet())
 
 Generate an [ODEProblem](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEProblem)
-from the [`ODEFunction`](@ref).
+from the [`ODEFunction`](@ref) which then can be solved by using the [DifferentialEquations.solve()](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/#CommonSolve.solve-Tuple{SciMLBase.AbstractDEProblem,%20Vararg{Any}}) method.
 
-Inputs arguments:
+Input arguments:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 - `callback`: (optional) see [callback](https://docs.sciml.ai/DiffEqDocs/stable/features/callback_functions/).
 """

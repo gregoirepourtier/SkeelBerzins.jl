@@ -1,29 +1,33 @@
 # Solver for one-dimensional ellipitic and parabolic nonlinear partial differential equations
-# API method
+# API methods
 
 
 """
-    pdepe(m, pdefunction, icfunction, bdfunction, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray) where {T1,T2,T3}
+    pdepe(m, pdefunction, icfunction, bdfunction, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray)
 
-Solve 1D elliptic and parabolic PDE(s) using the spatial discretization method described in [1].
-
+Solve 1D elliptic and/or parabolic partial differential equation(s) using the spatial discretization method described in [1].
+The time discretization is either done by the implicit Euler method (internal method) or by using a ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
+For more information on how to define the different inputs to solve a problem, look at (link problem definition...)
 
 Input arguments:
-- `m`:
-- `pdefunction`:
-- `icfunction`:
-- `bdfunction`:
-- `xmesh`:
-- `tspan`:
+- `m`: scalar refering to the symmetry of the problem. It can either take the value ``m=0``, ``m=1`` or ``m=2`` representing 
+       cartesian, cylindrical or spherical coordinates respectively.
+- `pdefunction`: Function. Defines the PDE(s) formulation that incorporates capacity, flux and source terms.
+- `icfunction`: Function. Defines the initial condition of the system to solve (if tstep ``\ne`` ``\inf`` initial condition from the ODE/DAE problem, 
+                else if ``tstep == \inf`` initial value used for the newton solver).
+- `bdfunction`: Function. Defines the boundary conditions of the problem.
+- `xmesh`: 1 dimensional array representing the mesh on which the user wants to obtain the solution.
+- `tspan`: tuple (t_0, t_{end}) representing the time interval of the problem.
 
 Keyword arguments:
-- `solver`:
-- `tstep`:
-- `hist`:
-- `sparsity`:
+- `solver`: choice of the time discretization either use :euler for internal implicit Euler method or :diffEq for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package (by default `:euler`).
+- `tstep`: define a time step when using the implicit Euler method (by default to `1e-3`). When set to `tstep=Inf`, it solves the stationary version of the problem.
+- `hist`: flag to return with the solution a list of 1d array with the history from the newton solver (by default `false`).
+- `sparsity`: choice of the type of matrix use to store the jacobian (by default `:sparseArray`).
 
 
-Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray) or [`SkeelBerzins.ProblemDefinition`](@ref).
+Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
+or a 1D Array, depending on the chosen solver.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray) where {T1,T2,T3}
 
@@ -243,13 +247,23 @@ end
 """
     pdepe(m, pdefunction, icfunction, bdfunction, xmesh ; hist=false, sparsity=:sparseArray)
 
-Solve 1D elliptic using the spatial discretization method described in [1] ([`pdepe`](@ref) variant to solve stationary problems).
+Solve 1D elliptic PDE(s) using the spatial discretization method described in [1] ([`pdepe`](@ref) variant to solve stationary problems).
+Performs one step of the implicit Euler method.
+For more information, look at link implicit Euler...
 
 Input arguments:
-
+- `m`: scalar refering to the symmetry of the problem. It can either take the value `m=0`, `m=1` or `m=2` representing 
+       cartesian, cylindrical or spherical coordinates respectively.
+- `pdefunction`: Function. Defines the PDE(s) formulation which includes the capacity, flux and source terms (capacity term should be set to 0).
+- `icfunction`: Function. It defines the initial value used for the Newton solver.
+- `bdfunction`: Function. Defines the boundary conditions of the problem.
+- `xmesh`: 1 dimensional array reprensenting the mesh on which the user wants to get the solution.
 
 Keyword arguments:
+- `hist`: flag to return with the solution a list of 1d array with the history from the newton solver (by default `false`).
+- `sparsity`: choice of the type of matrix use to store the jacobian (by default `:sparseArray`).
 
+Returns a 1D Array with the solution at the points from the spatial discretization `xmesh`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; hist=false, sparsity=:sparseArray) where {T1,T2,T3}
 

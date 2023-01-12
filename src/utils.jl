@@ -7,12 +7,12 @@
 Interpolate u and ``\frac{du}{dx}`` between two discretization points at some specific quadrature point.
 
 Input arguments:
-- 
-- 
-- 
-- 
--
-- 
+- `xl`: left boundary of the current interval.
+- `ul`: solution evaluated at the left boundary of the current interval.
+- `xr`: right boundary of the current interval.
+- `ur`: solution evaluated at the right boundary of the current interval.
+- `quadrature_point`: quadrature point chosen according to the method described in [1].
+- `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
 function interpolation(xl, ul, xr, ur, qd_point, pb)
 
@@ -97,9 +97,11 @@ end
 
 
 """
-$(TYPEDEF)
+    $(TYPEDEF)
 
-Mutable structure storing the problem definition
+Mutable structure storing the problem definition.
+
+$(TYPEDFIELDS)
 """
 mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, 
                                                                           icFunction<:Function, 
@@ -166,7 +168,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     bdfunction::bdFunction
 
     """
-    Preallocated vectors for interpolation in assemble fct°
+    Preallocated vectors for interpolation in assemble fct° when solving system of PDEs
     """
     interpolant::Vector{Tv}
     d_interpolant::Vector{Tv}
@@ -178,7 +180,7 @@ end
 """
     implicitEuler!(y,u,problem,tau,mass_matrix,timeStep)
 
-Assemble the system for the implicit Euler method
+Assemble the system for the implicit Euler method.
 """
 function implicitEuler!(y,u,pb,tau,mass,timeStep)
     assemble!(y, u, pb, timeStep)
@@ -196,9 +198,9 @@ end
 
 
 """
-$(SIGNATURES)
+    implicitEuler_stat!(y,u,problem,tau,timeStep)
 
-Assemble the system for the implicit Euler method for stationary problem
+Assemble the system for the implicit Euler method (variant method for stationary problems).
 """
 function implicitEuler_stat!(y,u,pb,tau,timeStep)
     assemble!(y, u, pb, timeStep)
@@ -216,9 +218,25 @@ end
 
 
 """
-$(SIGNATURES)
+    newton(b, tau, timeStep, problem, mass_matrix, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
 
-Newton method solving nonlinear system of equations
+Newton method solving nonlinear system of equations.
+
+Input arguments:
+- `b`: right-hand side of the system to solve.
+- `tau`: constant time step used for the time discretization.
+- `timeStep`: current time step of tspan.
+- `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
+- `mass_matrix`: mass matrix of the problem, see [here][link..].
+- `cache`: ForwardColorCache. To avoid allocating the cache in each iteration of the newton solver when computing the jacobian.
+- `rhs`: preallocated vector to avoid creating allocations.
+
+Keyword arguments:
+- `tol`: tolerance or stoppping criteria (by default to `1.0e-10`).
+- `maxit`: maximum number of iterations (by default to `100`).
+- `hist_flag`: flag to save the history and returns it (by default to `false`)
+
+Returns the solution of the nonlinear system of equations and if hist_flag==true, the history of the solver.
 """
 function newton(b, tau, timeStep, pb, mass, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
 
@@ -268,9 +286,9 @@ end
 
 
 """
-$(SIGNATURES)
+    newton_stat(b, tau, timeStep, problem, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
 
-Newton method solving nonlinear system of equations (stationary problems)
+Newton method solving nonlinear system of equations (variant of ([`newton`](@ref) for stationary problems).
 """
 function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
 
