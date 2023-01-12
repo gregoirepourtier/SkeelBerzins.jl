@@ -27,13 +27,13 @@ These methods should only be considered for developers or people trying to under
 ### Spatial Discretization
 
 ```@docs
-assemble!
+SkeelBerzins.assemble!
 ```
 
 ### Newton solvers
 ```@docs
-newton
-newton_stat
+SkeelBerzins.newton
+SkeelBerzins.newton_stat
 ```
 
 ### Problem definition

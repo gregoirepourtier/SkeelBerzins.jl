@@ -1,5 +1,5 @@
 using Documenter
-using SkeelBerzins
+using SkeelBerzins, SciMLBase
 
 makedocs(
     modules = [SkeelBerzins],
