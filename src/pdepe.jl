@@ -7,14 +7,14 @@
 
 Solve 1D elliptic and/or parabolic partial differential equation(s) using the spatial discretization method described in [1].
 The time discretization is either done by the implicit Euler method (internal method) or by using a ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
-For more information on how to define the different inputs to solve a problem, look at (link problem definition...)
+For more information on how to define the different inputs to solve a problem, look at (link problem definition...).
 
 Input arguments:
 - `m`: scalar refering to the symmetry of the problem. It can either take the value ``m=0``, ``m=1`` or ``m=2`` representing 
        cartesian, cylindrical or spherical coordinates respectively.
 - `pdefunction`: Function. Defines the PDE(s) formulation that incorporates capacity, flux and source terms.
-- `icfunction`: Function. Defines the initial condition of the system to solve (if tstep ``\ne`` ``\inf`` initial condition from the ODE/DAE problem, 
-                else if ``tstep == \inf`` initial value used for the newton solver).
+- `icfunction`: Function. Defines the initial condition of the system to solve (if ``tstep ≂̸ ∞`` initial condition from the ODE/DAE problem, 
+                else if ``tstep == ∞`` initial value used for the newton solver).
 - `bdfunction`: Function. Defines the boundary conditions of the problem.
 - `xmesh`: 1 dimensional array representing the mesh on which the user wants to obtain the solution.
 - `tspan`: tuple (t_0, t_{end}) representing the time interval of the problem.
@@ -24,8 +24,6 @@ Keyword arguments:
 - `tstep`: define a time step when using the implicit Euler method (by default to `1e-3`). When set to `tstep=Inf`, it solves the stationary version of the problem.
 - `hist`: flag to return with the solution a list of 1d array with the history from the newton solver (by default `false`).
 - `sparsity`: choice of the type of matrix use to store the jacobian (by default `:sparseArray`).
-
-
 Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
 or a 1D Array, depending on the chosen solver.
 """
