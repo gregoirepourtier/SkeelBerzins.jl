@@ -25,8 +25,6 @@ module Example110_SystemReactionDiffusion
 
 using SkeelBerzins
 using StaticArrays
-using DifferentialEquations
-
 
 function main()
 

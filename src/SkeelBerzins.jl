@@ -16,10 +16,11 @@ import DifferentialEquations
 # see https://github.com/JuliaDiff/SparseDiffTools.jl#note-about-sparse-differentiation-of-gpuarrays-bandedmatrices-and-blockbandedmatrices
 using ArrayInterfaceBandedMatrices
 
-## give the user the possibility to use a specific linear solver in Newton's method
+# give the user the possibility to use a specific linear solver in Newton's method
+using LinearSolve
+using KLU
+
 # using Symbolics
-# using LinearSolve
-# using KLU
 
 include("pdepe.jl")
 export pdepe

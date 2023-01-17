@@ -3,31 +3,34 @@
 
 
 """
-    pdepe(m, pdefunction, icfunction, bdfunction, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray)
+    pdepe(m, pdefunction, icfunction, bdfunction, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray, linSol=:umfpack)
 
 Solve 1D elliptic and/or parabolic partial differential equation(s) using the spatial discretization method described in [1].
 The time discretization is either done by the implicit Euler method (internal method) or by using a ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
 For more information on how to define the different inputs to solve a problem, look at (link problem definition...).
 
 Input arguments:
-- `m`: scalar refering to the symmetry of the problem. It can either take the value ``m=0``, ``m=1`` or ``m=2`` representing 
+- `m`: scalar refering to the symmetry of the problem. It can either take the value `m=0`, `m=1` or `m=2` representing 
        cartesian, cylindrical or spherical coordinates respectively.
 - `pdefunction`: Function. Defines the PDE(s) formulation that incorporates capacity, flux and source terms.
-- `icfunction`: Function. Defines the initial condition of the system to solve (if ``tstep ≂̸ ∞`` initial condition from the ODE/DAE problem, 
-                else if ``tstep == ∞`` initial value used for the newton solver).
+- `icfunction`: Function. Defines the initial condition of the system to solve (if tstep ``\\neq`` Inf - initial condition from the ODE/DAE problem, 
+                else if tstep = Inf - initial value used for the newton solver).
 - `bdfunction`: Function. Defines the boundary conditions of the problem.
-- `xmesh`: 1 dimensional array representing the mesh on which the user wants to obtain the solution.
-- `tspan`: tuple (t_0, t_{end}) representing the time interval of the problem.
+- `xmesh`: one-dimensional array representing the mesh on which the user wants to obtain the solution.
+- `tspan`: tuple ``(t_0, t_{end})`` representing the time interval of the problem.
 
 Keyword arguments:
-- `solver`: choice of the time discretization either use :euler for internal implicit Euler method or :diffEq for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package (by default `:euler`).
-- `tstep`: define a time step when using the implicit Euler method (by default to `1e-3`). When set to `tstep=Inf`, it solves the stationary version of the problem.
-- `hist`: flag to return with the solution a list of 1d array with the history from the newton solver (by default `false`).
-- `sparsity`: choice of the type of matrix use to store the jacobian (by default `:sparseArray`).
+- `solver`: choice of the time discretization either use `:euler` for internal implicit Euler method or `:diffEq` for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package (by default `:euler`).
+- `tstep`: defines a time step (either pass a `Float64` or a `Vector`) when using the implicit Euler method (by default to `1e-3`). 
+           When set to `tstep=Inf`, it solves the stationary version of the problem.
+- `hist`: flag, returns with the solution, a list of 1d-array with the history from the newton solver (by default `false`).
+- `sparsity`: choice of the type of matrix (`:sparseArray`, `:exSparse`, `:banded`) use to store the jacobian (by default `:sparseArray`).
+- `linSol`: choice of the solver for the LSE in the newton method (`:umfpack`, `:LinearSolve`, `:klu`) (by default `:umfpack`).
+
 Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
 or a 1D Array, depending on the chosen solver.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray) where {T1,T2,T3}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler, tstep=1e-3, hist=false, sparsity=:sparseArray, linSol=:umfpack) where {T1,T2,T3}
 
     # Check if the paramater m is valid
     @assert m==0 || m==1 || m==2 "Parameter m invalid"
@@ -183,9 +186,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler
             un = inival
 
             if hist
-                unP1, history = newton_stat(un, tstep, 1, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist)
+                unP1, history = newton_stat(un, tstep, 1, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist, linSol=linSol)
             else
-                unP1 = newton_stat(un, tstep, 1, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist)
+                unP1 = newton_stat(un, tstep, 1, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist, linSol=linSol)
             end
 
             if hist
@@ -200,21 +203,35 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler
             mass_mat_diag = mass_matrix(pb)
             mass_mat_vec  = reshape(mass_mat_diag.diag,(npde,Nx))
 
-            timeSteps = collect(tspan[1]:tstep:tspan[2])
+            flag_tstep = tstep isa Real
+
+
+            if flag_tstep
+                timeSteps = collect(tspan[1]:tstep:tspan[2])
+            else
+                timeSteps = tstep
+                tstep = diff(tstep)
+            end
+            
             results   = []
                                     
             un = copy(inival)
             push!(results,reshape(inival,(npde,Nx)))
-
+            
+            cpt = 1
 
             for t ∈ timeSteps[2:end]
 
                 lmul!(mass_mat_diag,un)
 
-                if hist
-                    unP1, history = newton(un, tstep, t, pb, mass_mat_vec, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist)
-                else
-                    unP1          = newton(un, tstep, t, pb, mass_mat_vec, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist)
+                if hist && flag_tstep
+                    unP1, history = newton(un, tstep, t, pb, mass_mat_vec, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist, linSol=linSol)
+                elseif flag_tstep
+                    unP1          = newton(un, tstep, t, pb, mass_mat_vec, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist, linSol=linSol)
+                elseif hist && !flag_tstep
+                    unP1, history = newton(un, tstep[cpt], t, pb, mass_mat_vec, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist, linSol=linSol)
+                elseif !flag_tstep
+                    unP1          = newton(un, tstep[cpt], t, pb, mass_mat_vec, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=hist, linSol=linSol)
                 end
 
                 push!(results,reshape(unP1,(npde,Nx)))
@@ -223,6 +240,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; solver=:euler
                 if hist
                     push!(storage,history)
                 end
+
+                cpt += 1
             end
 
             if hist
@@ -245,7 +264,7 @@ end
 """
     pdepe(m, pdefunction, icfunction, bdfunction, xmesh ; hist=false, sparsity=:sparseArray)
 
-Solve 1D elliptic PDE(s) using the spatial discretization method described in [1] ([`pdepe`](@ref) variant to solve stationary problems).
+Solve 1D elliptic PDE(s) using the spatial discretization method described in [1] - [`pdepe`](@ref) variant to solve stationary problems.
 Performs one step of the implicit Euler method.
 For more information, look at link implicit Euler...
 
@@ -255,18 +274,19 @@ Input arguments:
 - `pdefunction`: Function. Defines the PDE(s) formulation which includes the capacity, flux and source terms (capacity term should be set to 0).
 - `icfunction`: Function. It defines the initial value used for the Newton solver.
 - `bdfunction`: Function. Defines the boundary conditions of the problem.
-- `xmesh`: 1 dimensional array reprensenting the mesh on which the user wants to get the solution.
+- `xmesh`: one-dimensional array representing the mesh on which the user wants to obtain the solution.
 
 Keyword arguments:
-- `hist`: flag to return with the solution a list of 1d array with the history from the newton solver (by default `false`).
-- `sparsity`: choice of the type of matrix use to store the jacobian (by default `:sparseArray`).
+- `hist`: flag, returns with the solution, a 1d-array with the history from the newton solver (by default `false`).
+- `sparsity`: choice of the type of matrix (`:sparseArray`, `:exSparse`, `:banded`) use to store the jacobian (by default `:sparseArray`).
+- `linSol`: choice of the solver for the LSE in the newton method (`:umfpack`, `:LinearSolve`, `:klu`) (by default `:umfpack`).
 
 Returns a 1D Array with the solution at the points from the spatial discretization `xmesh`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; hist=false, sparsity=:sparseArray) where {T1,T2,T3}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; hist=false, sparsity=:sparseArray, linSol=:umfpack) where {T1,T2,T3}
 
     tspan = (0.0,1.0) # define an arbitrary time interval
-    sol = pdepe(m,pdefun,icfun,bdfun,xmesh,tspan ; solver=:euler, tstep=Inf, hist=hist, sparsity=sparsity)
+    sol = pdepe(m,pdefun,icfun,bdfun,xmesh,tspan ; solver=:euler, tstep=Inf, hist=hist, sparsity=sparsity, linSol=linSol)
 
     return sol
 end

@@ -6,7 +6,7 @@ We present here an index of all the methods that are present in the package. The
 
 ## Public API
 
-### Internal implicit Euler method
+### Solvers
 
 ```@docs
 pdepe
@@ -25,9 +25,10 @@ Base.reshape
 These methods should only be considered for developers or people trying to understand the inner workings of the package.
 
 ### Spatial Discretization
-
 ```@docs
 SkeelBerzins.assemble!
+SkeelBerzins.interpolation
+SkeelBerzins.interpolation!
 ```
 
 ### Newton solvers
@@ -37,7 +38,16 @@ SkeelBerzins.newton_stat
 ```
 
 ### Problem definition
+```@docs
+SkeelBerzins.ProblemDefinition
+```
 
+### Implicit Euler method
+```@docs
+SkeelBerzins.implicitEuler!
+SkeelBerzins.implicitEuler_stat!
+SkeelBerzins.mass_matrix
+```
 
 ### Compatibility with DifferentialEquations.jl
 

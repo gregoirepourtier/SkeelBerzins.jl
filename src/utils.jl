@@ -4,7 +4,7 @@
 """
     interpolation(xl, ul, xr, ur, quadrature_point, problem)
 
-Interpolate u and ``\frac{du}{dx}`` between two discretization points at some specific quadrature point.
+Interpolate u and ``\\frac{du}{dx}`` between two discretization points at some specific quadrature point.
 
 Input arguments:
 - `xl`: left boundary of the current interval.
@@ -52,7 +52,7 @@ end
 """
     interpolation!(interp, d_interp, xl, ul, xr, ur, quadrature_point, problem)
 
-Mutating version of the [interpolation function](@ref).
+Mutating version of the [`interpolation`](@ref) function.
 """
 function interpolation!(interp, dinterp, xl, ul, xr, ur, qd_point, pb)
 
@@ -168,7 +168,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     bdfunction::bdFunction
 
     """
-    Preallocated vectors for interpolation in assemble fct° when solving system of PDEs
+    Preallocated vectors for interpolation in assemble! function when solving system of PDEs
     """
     interpolant::Vector{Tv}
     d_interpolant::Vector{Tv}
@@ -227,18 +227,19 @@ Input arguments:
 - `tau`: constant time step used for the time discretization.
 - `timeStep`: current time step of tspan.
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
-- `mass_matrix`: mass matrix of the problem, see [here][link..].
+- `mass_matrix`: mass matrix of the problem, see [`mass_matrix`][@ref].
 - `cache`: ForwardColorCache. To avoid allocating the cache in each iteration of the newton solver when computing the jacobian.
 - `rhs`: preallocated vector to avoid creating allocations.
 
 Keyword arguments:
 - `tol`: tolerance or stoppping criteria (by default to `1.0e-10`).
 - `maxit`: maximum number of iterations (by default to `100`).
-- `hist_flag`: flag to save the history and returns it (by default to `false`)
+- `hist_flag`: flag to save the history and returns it (by default to `false`).
+- `linSol`: choice of the solver for the LSE (`:umfpack`, `:LinearSolve`, `:klu`) (by default `:umfpack`).
 
-Returns the solution of the nonlinear system of equations and if hist_flag==true, the history of the solver.
+Returns the solution of the nonlinear system of equations and if `hist_flag=true`, the history of the solver.
 """
-function newton(b, tau, timeStep, pb, mass, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
+function newton(b, tau, timeStep, pb, mass, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=:umfpack)
 
     if hist_flag
 	    history = Float64[]
@@ -251,19 +252,17 @@ function newton(b, tau, timeStep, pb, mass, cache, rhs ; tol=1.0e-10, maxit=100,
         value!(rhs, cache)
         rhs .=  rhs .- (1 ./tau).*b
 
-        ## Solving the LSE
-
-        # BackSlash operator
-        h = pb.jac\rhs
-
-        # LinearSolve package
-        # prob = LinearProblem(pb.jac,rhs)
-        # sol1 = solve(prob)
-        # h = sol1.u
-
-        # KLU Linear Solver
-        # factor = klu(pb.jac)
-        # h = factor\vec(rhs)
+        # Solving the LSE
+        if linSol == :umfpack # BackSlash operator (:umfpack)
+            h = pb.jac\rhs
+        elseif linSol == :LinearSolve # LinearSolve package (:LinearSolve)
+            prob = LinearProblem(pb.jac,rhs)
+            sol1 = solve(prob)
+            h = sol1.u
+        elseif linSol == :klu # KLU Linear Solver (:klu)
+            factor = klu(pb.jac)
+            h = factor\rhs
+        end
 
         unP1 .= unP1 .- h
 
@@ -288,9 +287,9 @@ end
 """
     newton_stat(b, tau, timeStep, problem, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
 
-Newton method solving nonlinear system of equations (variant of ([`newton`](@ref) for stationary problems).
+Newton method solving nonlinear system of equations (variant of [`newton`](@ref) for stationary problems).
 """
-function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
+function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=:umfpack)
 
     if hist_flag
 	    history = Float64[]
@@ -304,18 +303,16 @@ function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, 
         rhs .= rhs .- (1 ./tau).*b
 
         # Solving the LSE
-
-        # BackSlash operator    
-        h = pb.jac\rhs
-
-        # LinearSolve package
-        # prob = LinearProblem(pb.jac,rhs) # add method?
-        # sol1 = solve(prob)
-        # h = sol1.u
-
-        # KLU Linear Solver
-        # factor = klu(pb.jac)
-        # h = factor\rhs
+        if linSol == :umfpack # BackSlash operator (:umfpack)
+            h = pb.jac\rhs
+        elseif linSol == :LinearSolve # LinearSolve package (:LinearSolve)
+            prob = LinearProblem(pb.jac,rhs)
+            sol1 = solve(prob)
+            h = sol1.u
+        elseif linSol == :klu # KLU Linear Solver (:klu)
+            factor = klu(pb.jac)
+            h = factor\rhs
+        end
 
         unP1 .= unP1 .- h
 

@@ -3,14 +3,16 @@
 
 
 """
-$(SIGNATURES)
+    assemble!(du, u, problem, t)
 
 Performs space discretization following the difference equations described in [1].
 
 Assemble the right-hand side ``f`` to generate an ODE/DAE problem:
+
 ```math
-M \frac{du}{dt} = f(u,SkeelBerzins.ProblemDefinition,t)
+M \\frac{du}{dt} = f(u,problem,t)
 ```
+where the input `problem` is defined as a [`SkeelBerzins.ProblemDefinition`](@ref) structure.
 
 This function is specified in a way that it is compatible with the DifferentialEquations.jl package.
 """
@@ -131,7 +133,7 @@ end
 
 
 """
-$(SIGNATURES)
+    mass_matrix(problem)
 
 Assemble the diagonal mass matrix M of the system of differential equations 
 when solving a problem with at least one parabolic PDE.
