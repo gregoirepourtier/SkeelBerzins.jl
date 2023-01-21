@@ -12,6 +12,11 @@ We present here an index of all the methods that are present in the package. The
 pdepe
 ```
 
+### Parameters for the package
+```@docs
+Params
+```
+
 ### Compatibility with DifferentialEquations.jl
 
 ```@docs

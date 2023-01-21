@@ -1,23 +1,20 @@
-#= 
+# Example 106: Linear Diffusion equation cylindrical coordinates
 
-
-# Example 106: Linear Diffusion Problem in Cylindrical Coordinates
-
-Solve the following problem
+Solve the following problem:
 ```math
 u_t = \frac{1}{x}(xu_x)_x
-````
-for $x \in \Omega=(0,1)$ with the imposed symmetry condition in $x=0$ (since use of cylindrical coordinates)
-and Dirichle condition in $x=1$ using the implicit Euler method (internal method).
+```
+for ``x \in \Omega=(0,1)`` with the imposed symmetry condition in ``x=0`` (since use of cylindrical coordinates)
+and Dirichlet condition in ``x=1`` using the implicit Euler method (internal method).
 
 We initialize our problem with the exact solution (Bessel function and its first zero):
 ```math
 u(x,0) = J_0(nx)
 ```
-where $n = 2.404825557695773$.
-=#
+where ``n = 2.404825557695773``.
 
 
+```
 module Example106_LinearDiffusionCylindrical
 
 using SkeelBerzins
@@ -26,14 +23,14 @@ using SpecialFunctions
 function main()
 
     Nx = 21
-
-	L = 1
-	T = 1
-
-	x_mesh = collect(range(0, L, length=Nx))
-	tspan  = (0, T)
-
-	m = 1
+    
+    L = 1
+    T = 1
+    
+    x_mesh = collect(range(0, L, length=Nx))
+    tspan  = (0, T)
+    
+    m = 1
 
     function pdefun(x,t,u,dudx)
         c = 1
@@ -68,7 +65,8 @@ end
 
 function test()
     testval = 0.04020183138531086
-	main() ≈ testval
+    main() ≈ testval
 end
 
 end
+```

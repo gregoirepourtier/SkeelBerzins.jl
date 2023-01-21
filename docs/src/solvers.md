@@ -6,9 +6,9 @@ The solvers expect the PDE problem to be described in the following way.
 
 ## Define the PDE
 
-In order to define the PDE(s), we have to follow the format introduced in the previous section on Problem definition.
+In order to define the PDE(s), we have to follow the format introduced in the previous section on [Problem definition](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/problem_definition/#Problem-Definition).
 For the purpose of this explanation, we use the function `pdefunction(x,t,u,dudx)` to describe the PDE(s). The inputs of the function are self-explanatory.
-It will then returns the capacity `c(x,t,u,dudx)`, the flux `f(x,t,u,dudx)` and the source `s(x,t,u,dux)` terms (refer to the previous section).
+It will then returns the capacity `c(x,t,u,dudx)`, the flux `f(x,t,u,dudx)` and the source `s(x,t,u,dux)` terms.
 
 This function will be passed as an argument to the solver.
 
@@ -23,16 +23,16 @@ This function will be passed as an argument to the solver.
 ## Define the boundary conditions
 
 To represent the boundary condition, we introduce the function `bdfunction(xl,ul,xr,ur,t)`. The input arguments are:
-- `xl` : left boundary point of the problem.
-- `ul` : estimate of the solution evaluated at the left boundary of the domain.
-- `xr` : right boundary point of the problem.
-- `ur` : estimate of the solution evaluated at the right boundary of the domain.
-- `t` : evaluates the boundary conditions at time ``t \in [t_0,t_{end}]``.
+- `xl`: left boundary point of the problem.
+- `ul`: estimate of the solution evaluated at the left boundary of the domain.
+- `xr`: right boundary point of the problem.
+- `ur`: estimate of the solution evaluated at the right boundary of the domain.
+- `t`: evaluates the boundary conditions at time ``t \in [t_0,t_{end}]``.
 
 The function will return the terms of the boundary conditions introduced in the problem defintion section, i.e. `p(x,t,u)` and `q(x,t)` for the left and right part of the spatial mesh.
 
 !!! warning
-    If ``m>0`` and the left boundary point of the domain ``a=0``, the solver ignores the given boundary condition to enforce the symmetry condition.
+    If ``m>0`` and the left boundary point of the domain ``a=0``, the solver ignores the given boundary condition to enforce the symmetry condition    resulting in a more accurate solution near x=0.
 
 This function will be passed as an argument to the solver.
 
@@ -45,7 +45,7 @@ Having defined the PDE formulation, the solver function `pdepe` can now be intro
 
 #### Parabolic equation(s)
 
-When aiming to solve a problem that includes at least one parabolic equation, we can use the internal implicit Euler method.
+The package contains an implementation of the implicit Euler method which can be used to solve parabolic equation(s). The method has a first order error with respect to time.
 
 #### Elliptic Equations
 
@@ -56,7 +56,7 @@ M \frac{u^{k+1}-u^k}{\Delta t} = A(u^{k+1})
 ```
 with ``M`` the mass matrix, ``\Delta t`` the time step used for the time discretization, ``A`` the (non)linear operator resulting from the space discretization, ``u^k`` and ``u^{k+1}`` the estimate solutions at time ``t_0 + k \Delta t`` and ``t_0 + (k+1) \Delta t`` respectively.
 
-In Julia, positive infinity is defined as `Inf`. By setting ``\Delta t = `` Inf, it follows that ``\frac{1}{\Delta t} = 0`` and thus we are left with the stationary problem which can solved by using the Newton solver.
+In Julia, positive infinity is defined as `Inf`. By setting ``\Delta t = `` Inf, it follows that ``\frac{1}{\Delta t} = 0`` and thus we are left with the stationary problem which can solved by using the Newton solver (see [`SkeelBerzins.newton`](@ref)).
 
 It results that the solution for the stationary problem can be obtained by running one iteration of the implicit Euler method.
 
@@ -106,7 +106,7 @@ xmesh = collect(range(0,1,length=21))
 tspan = (0,1)
 
 # Solve
-sol = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan ; solver=:euler,tstep=1e-3)
+sol = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan)
 ```
 
 ### Solve linear diffusion problem in cartesian coordinates with homogeneous Neumann boundary conditions using the DifferentialEquations.jl
@@ -145,8 +145,12 @@ xmesh = collect(range(0,1,length=21))
 # Define the time interval
 tspan = (0,1)
 
+# Define Keyword Arguments
+params = SkeelBerzins.Params()
+params.solver = :DiffEq
+
 # Solve
-problem_data = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan ; solver=:diffEq)
+problem_data = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan ; params=params)
 problem_ode = DifferentialEquations.ODEProblem(problem_data)
 sol_ode = DifferentialEquations.solve(problem,Rosenbrock23())
 sol = reshape(sol_ode,problem_data)

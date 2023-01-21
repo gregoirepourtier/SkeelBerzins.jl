@@ -1,22 +1,18 @@
-#= 
+# Example 105: Linear Diffusion equation in cylindrical coordinates (DiffEq)
 
-
-# Example 105: Linear Diffusion Problem in Cylindrical Coordinates
-
-Solve the following problem
+Solve the following problem:
 ```math
 u_t = \frac{1}{x}(xu_x)_x
-````
-for $x \in \Omega=(0,1)$ with the imposed symmetry condition in $x=0$ (since use of cylindrical coordinates)
-and Dirichlet condition in $x=1$ using the DAE solvers of the DifferentialEquations.jl package.
+```
+for ``x \in \Omega=(0,1)`` with the imposed symmetry condition in ``x=0`` (since use of cylindrical coordinates) and Dirichlet condition in ``x=1`` using the DAE solvers of the DifferentialEquations.jl package.
 
 We initialize our problem with the exact solution (Bessel function and its first zero):
 ```math
 u(x,0) = J_0(nx)
 ```
-where $n = 2.404825557695773$.
-=#
+where ``n = 2.404825557695773``.
 
+```
 module Example105_LinearDiffusionCylindrical_DiffEq
 
 using SkeelBerzins
@@ -26,14 +22,14 @@ using DifferentialEquations
 function main()
 
     Nx = 21
-
-	L = 1
-	T = 1
-
-	x_mesh = collect(range(0, L, length=Nx))
-	tspan  = (0, T)
-
-	m = 1
+    
+    L = 1
+    T = 1
+    
+    x_mesh = collect(range(0, L, length=Nx))
+    tspan  = (0, T)
+    
+    m = 1
 
     function pdefun(x,t,u,dudx)
         c = 1
@@ -61,11 +57,11 @@ function main()
     end
 
     params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+    params.solver = :DiffEq
 
     pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-	problem = DifferentialEquations.ODEProblem(pb)
-	sol = DifferentialEquations.solve(problem,Rosenbrock23())
+    problem = DifferentialEquations.ODEProblem(pb)
+    sol = DifferentialEquations.solve(problem,Rosenbrock23())
 
     return sum(sol.u[end])
 end
@@ -73,7 +69,8 @@ end
 
 function test()
     testval = 0.03902519717606674
-	main() ≈ testval
+    main() ≈ testval
 end
 
 end
+```

@@ -1,9 +1,6 @@
-#=
+# Example 110: System of Reaction-Diffusion equations
 
-
-# Example 109: Reaction-Diffusion System
-
-Solve the system of PDEs
+Solve the following system of PDEs:
 ```math
 \partial_t u_1 = 0.5 \partial^2_x u_1 - u_1 + u_2 = 0 \\
 \partial_t u_2 = 0.1 \partial^2_x u_2 + u_1 - u_2 = 0 \\
@@ -11,22 +8,20 @@ u_1(0,t) = 1 \\
 \partial_x u_1(1,t) = 0 \\
 \partial_x u_2(0,t) = 0 \\
 u_2(0,t) = 0
-````
-for $x \in \Omega=(0,10)$ using the DAE solvers of the DifferentialEquations.jl package.
+```
+for ``x \in \Omega=(0,10)`` using the implicit Euler method (internal method).
 
 We take for our problem the following initial condition:
 ```math
 u_1(x,0) = 0 \\
 u_2(x,0) = 0
 ```
-=#
 
-module Example109_SystemReactionDiffusion_DiffEq
+```
+module Example110_SystemReactionDiffusion
 
 using SkeelBerzins
 using StaticArrays
-using DifferentialEquations
-
 
 function main()
 
@@ -58,7 +53,7 @@ function main()
 
 	function bdfun_test(xl,ul,xr,ur,t)
 		pl = SVector(ul[1]-1.0, 0)
-    	ql = SVector(0, 1)
+		ql = SVector(0, 1)
 		pr = SVector(0, ur[2])
 		qr = SVector(1, 0)
 
@@ -66,18 +61,17 @@ function main()
 	end
 
 	params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+	params.tstep = 1e-2
 
-	pb = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
-	problem = DifferentialEquations.ODEProblem(pb)
-	sol = DifferentialEquations.solve(problem,Rosenbrock23())
+	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
 
 	return sum(sol.u[end])
 end
 
 function test()
-    testval=29.035923566365785
+    testval=29.034702247833415
     main() ≈ testval
 end
 
 end
+```

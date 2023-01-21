@@ -5,7 +5,7 @@
 
 Solve the nonlinear diffusion equation
 ```math
--(u^2)_{xx} = 1 \\
+-(2uu_x)_{x} = 1 \\
 u(0) = 0.1 \\
 u(1) = 0.1 \\
 ````
@@ -53,9 +53,11 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; solver=:euler,tstep=Inf)
-	
+	params = SkeelBerzins.Params()
+	params.tstep = Inf
 
+	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
+	
 	return sum(sol)
 end
 

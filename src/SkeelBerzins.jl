@@ -9,23 +9,19 @@ using ExtendableSparse
 
 using RecursiveArrayTools
 using DocStringExtensions
+using Parameters
 
-import SciMLBase
 import DifferentialEquations
+using LinearSolve
 
 # see https://github.com/JuliaDiff/SparseDiffTools.jl#note-about-sparse-differentiation-of-gpuarrays-bandedmatrices-and-blockbandedmatrices
 using ArrayInterfaceBandedMatrices
-
-# give the user the possibility to use a specific linear solver in Newton's method
-using LinearSolve
-using KLU
-
-# using Symbolics
 
 include("pdepe.jl")
 export pdepe
 
 include("utils.jl")
+export Params
 
 include("assembler.jl")
 

@@ -97,7 +97,7 @@ end
 
 
 """
-    $(TYPEDEF)
+$(TYPEDEF)
 
 Mutable structure storing the problem definition.
 
@@ -178,6 +178,55 @@ end
 
 
 """
+$(TYPEDEF)
+
+Mutable structure containing all the keyword arguments for the solver [`pdepe`](@ref).
+
+$(TYPEDFIELDS)
+"""
+@with_kw mutable struct Params
+
+    """
+    Choice of the time discretization either use `:euler` for internal implicit Euler method or `:DiffEq` for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
+    """
+    solver::Symbol = :euler
+
+    """
+    Defines a time step (either pass a `Float64` or a `Vector`) when using the implicit Euler method. 
+    When set to `tstep=Inf`, it solves the stationary version of the problem.
+    """
+    tstep::Union{Float64,Vector{Float64}} = 1e-3
+
+    """
+    Flag, returns with the solution, a list of 1d-array with the history from the newton solver.
+    """
+    hist::Bool = false
+
+    """
+    Choice of the type of matrix (`:sparseArrays`, `:exSparse`, `:banded`) use to store the jacobian.
+    """
+    sparsity::Symbol = :sparseArrays
+
+    """
+    Choice of the solver for the LSE in the newton method, see [`LinearSolve.jl`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/).
+    """
+    linSolver::Union{LinearSolve.SciMLLinearSolveAlgorithm, Nothing} = nothing
+
+    """
+    Maximum number of iterations for the Newton solver.
+    """
+    maxit::Int = 100
+
+    """
+    Tolerance used for Newton method.
+    Returns solution if ``||\\; u_{i+1} - u_{i} \\;||_2 <`` `tol`.
+    """
+    tol::Float64 = 1e-10
+
+end
+
+
+"""
     implicitEuler!(y,u,problem,tau,mass_matrix,timeStep)
 
 Assemble the system for the implicit Euler method.
@@ -218,28 +267,29 @@ end
 
 
 """
-    newton(b, tau, timeStep, problem, mass_matrix, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
+    newton(b, tau, timeStep, problem, mass_matrix, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=nothing)
 
-Newton method solving nonlinear system of equations.
+Newton method solving nonlinear system of equations. The Jacobi matrix used for the iteration rule is computed with
+the help of the [`SparseDiffTools.jl`](https://github.com/JuliaDiff/SparseDiffTools.jl) package.
 
 Input arguments:
 - `b`: right-hand side of the system to solve.
 - `tau`: constant time step used for the time discretization.
 - `timeStep`: current time step of tspan.
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
-- `mass_matrix`: mass matrix of the problem, see [`mass_matrix`][@ref].
-- `cache`: ForwardColorCache. To avoid allocating the cache in each iteration of the newton solver when computing the jacobian.
+- `mass_matrix`: mass matrix of the problem, see [`SkeelBerzins.mass_matrix`][@ref].
+- `cache`: `SparseDiffTools.ForwardColorCache`. To avoid allocating the cache in each iteration of the newton solver when computing the jacobian.
 - `rhs`: preallocated vector to avoid creating allocations.
 
 Keyword arguments:
 - `tol`: tolerance or stoppping criteria (by default to `1.0e-10`).
 - `maxit`: maximum number of iterations (by default to `100`).
 - `hist_flag`: flag to save the history and returns it (by default to `false`).
-- `linSol`: choice of the solver for the LSE (`:umfpack`, `:LinearSolve`, `:klu`) (by default `:umfpack`).
+- `linSol`: choice of the solver for the LSE, see [`LinearSolve.jl`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/) (by default `nothing`).
 
 Returns the solution of the nonlinear system of equations and if `hist_flag=true`, the history of the solver.
 """
-function newton(b, tau, timeStep, pb, mass, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=:umfpack)
+function newton(b, tau, timeStep, pb, mass, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=nothing)
 
     if hist_flag
 	    history = Float64[]
@@ -252,17 +302,10 @@ function newton(b, tau, timeStep, pb, mass, cache, rhs ; tol=1.0e-10, maxit=100,
         value!(rhs, cache)
         rhs .=  rhs .- (1 ./tau).*b
 
-        # Solving the LSE
-        if linSol == :umfpack # BackSlash operator (:umfpack)
-            h = pb.jac\rhs
-        elseif linSol == :LinearSolve # LinearSolve package (:LinearSolve)
-            prob = LinearProblem(pb.jac,rhs)
-            sol1 = solve(prob)
-            h = sol1.u
-        elseif linSol == :klu # KLU Linear Solver (:klu)
-            factor = klu(pb.jac)
-            h = factor\rhs
-        end
+        # Solving the LSE using the LinearSolve.jl package
+        prob = LinearProblem(pb.jac,rhs)
+        sol1 = solve(prob,linSol)
+        h = sol1.u
 
         unP1 .= unP1 .- h
 
@@ -285,11 +328,11 @@ end
 
 
 """
-    newton_stat(b, tau, timeStep, problem, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false)
+    newton_stat(b, tau, timeStep, problem, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=nothing)
 
 Newton method solving nonlinear system of equations (variant of [`newton`](@ref) for stationary problems).
 """
-function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=:umfpack)
+function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, hist_flag=false, linSol=nothing)
 
     if hist_flag
 	    history = Float64[]
@@ -302,17 +345,10 @@ function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, 
         value!(rhs, cache)
         rhs .= rhs .- (1 ./tau).*b
 
-        # Solving the LSE
-        if linSol == :umfpack # BackSlash operator (:umfpack)
-            h = pb.jac\rhs
-        elseif linSol == :LinearSolve # LinearSolve package (:LinearSolve)
-            prob = LinearProblem(pb.jac,rhs)
-            sol1 = solve(prob)
-            h = sol1.u
-        elseif linSol == :klu # KLU Linear Solver (:klu)
-            factor = klu(pb.jac)
-            h = factor\rhs
-        end
+        # Solving the LSE using the LinearSolve.jl package
+        prob = LinearProblem(pb.jac,rhs)
+        sol1 = solve(prob,linSol)
+        h = sol1.u
 
         unP1 .= unP1 .- h
 

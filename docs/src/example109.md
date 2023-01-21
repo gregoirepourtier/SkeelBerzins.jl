@@ -1,9 +1,6 @@
-#=
+# Example 109: System of Reaction-Diffusion equations (DiffEq)
 
-
-# Example 109: Reaction-Diffusion System
-
-Solve the system of PDEs
+Solve the following system of PDEs:
 ```math
 \partial_t u_1 = 0.5 \partial^2_x u_1 - u_1 + u_2 = 0 \\
 \partial_t u_2 = 0.1 \partial^2_x u_2 + u_1 - u_2 = 0 \\
@@ -11,16 +8,16 @@ u_1(0,t) = 1 \\
 \partial_x u_1(1,t) = 0 \\
 \partial_x u_2(0,t) = 0 \\
 u_2(0,t) = 0
-````
-for $x \in \Omega=(0,10)$ using the DAE solvers of the DifferentialEquations.jl package.
+```
+for ``x \in \Omega=(0,10)`` using the DAE solvers of the DifferentialEquations.jl package.
 
 We take for our problem the following initial condition:
 ```math
 u_1(x,0) = 0 \\
 u_2(x,0) = 0
 ```
-=#
 
+```
 module Example109_SystemReactionDiffusion_DiffEq
 
 using SkeelBerzins
@@ -58,7 +55,7 @@ function main()
 
 	function bdfun_test(xl,ul,xr,ur,t)
 		pl = SVector(ul[1]-1.0, 0)
-    	ql = SVector(0, 1)
+		ql = SVector(0, 1)
 		pr = SVector(0, ur[2])
 		qr = SVector(1, 0)
 
@@ -81,3 +78,4 @@ function test()
 end
 
 end
+```

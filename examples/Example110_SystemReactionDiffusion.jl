@@ -63,7 +63,10 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; solver=:euler, tstep=1e-2)
+	params = SkeelBerzins.Params()
+	params.tstep = 1e-2
+
+	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
 
 	return sum(sol.u[end])
 end

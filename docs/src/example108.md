@@ -1,18 +1,15 @@
-#= 
+# Example 108: Stationary nonlinear diffusion equation
 
-
-# Example 107: 1D Poisson equation 
-
-Solve the 1D Poisson equation
+Solve the following nonlinear diffusion equation:
 ```math
--u_{xx} = 1 \\
-u(0)=0.1 \\
-u(1)=0.1 \\
-````
-for $x \in \Omega=(0,1)$ with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
-=#
+-(2uu_x)_{x} = 1 \\
+u(0) = 0.1 \\
+u(1) = 0.1 \\
+```
+for ``x \in \Omega=(0,1)`` with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
 
-module Example107_Poisson
+```
+module Example108_StationaryNonLinearDiffusion
 
 using SkeelBerzins
 
@@ -31,7 +28,7 @@ function main()
 
 	function pdefun_test(x,t,u,dudx)
 		c = 1
-		f = dudx 
+		f = 2*u*dudx 
 		s = 1
 		
 		return c,f,s
@@ -55,14 +52,17 @@ function main()
 
 	params = SkeelBerzins.Params()
 	params.tstep = Inf
+
 	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
 	
+
 	return sum(sol)
 end
 
 function test()
-    testval=3.7624999999999997
+    testval=6.025575019008793
     main() ≈ testval
 end
 
 end
+```

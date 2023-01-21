@@ -1,21 +1,18 @@
-#= 
+# Example 104: Nonlinear Diffusion equation
 
-
-# Example 104: Nonlinear Diffusion 1D
-
-Solve the nonlinear diffusion equation
+Solve the following nonlinear diffusion equation:
 ```math
 u_t  = (2uu_x)_{x}
 ```
-for $x \in \Omega=(-1,1)$ with homogeneous Neumann boundary conditions using the implicit Euler method (internal method).
+for ``x \in \Omega=(-1,1)`` with homogeneous Neumann boundary conditions using the implicit Euler method (internal method).
 
 We take for our problem the following initial condition (exact solution named Barenblatt solution):
 ```math
 u(x,0.001) = \max\left(0,t^{-\alpha}\left(1-\frac{\alpha(m-1)x^2}{2mt^{2\alpha}}\right)^{\frac{1}{m-1}}\right)
 ```
 for ``m=2`` and ``\alpha = \left(m+1\right)^{-1}``.
-=#
 
+```
 module Example104_NonlinearDiffusion
 
 using SkeelBerzins
@@ -83,3 +80,4 @@ function test()
 end
 
 end
+```

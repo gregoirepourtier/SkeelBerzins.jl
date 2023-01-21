@@ -14,7 +14,7 @@ and defines the problem with respect to the sparsity pattern.
 Input argument:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function SciMLBase.ODEFunction(pb::ProblemDefinition)
+function DifferentialEquations.ODEFunction(pb::ProblemDefinition)
     DifferentialEquations.ODEFunction(assemble! ; jac_prototype=pb.jac, mass_matrix=mass_matrix(pb))
 end
 
@@ -29,7 +29,7 @@ Input arguments:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 - `callback`: (optional) see [callback](https://docs.sciml.ai/DiffEqDocs/stable/features/callback_functions/).
 """
-function SciMLBase.ODEProblem(pb::ProblemDefinition,callback=DifferentialEquations.CallbackSet())
+function DifferentialEquations.ODEProblem(pb::ProblemDefinition,callback=DifferentialEquations.CallbackSet())
     odefunction=DifferentialEquations.ODEFunction(pb)
     DifferentialEquations.ODEProblem(odefunction,pb.inival,pb.tspan,pb,callback)
 end

@@ -1,17 +1,14 @@
-#= 
+# Example 107: Poisson equation
 
-
-# Example 107: 1D Poisson equation 
-
-Solve the 1D Poisson equation
+Solve the following 1D Poisson equation:
 ```math
 -u_{xx} = 1 \\
 u(0)=0.1 \\
 u(1)=0.1 \\
-````
-for $x \in \Omega=(0,1)$ with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
-=#
+```
+for ``x \in \Omega=(0,1)`` with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
 
+```
 module Example107_Poisson
 
 using SkeelBerzins
@@ -53,10 +50,12 @@ function main()
 		return pl,ql,pr,qr
 	end
 
+
 	params = SkeelBerzins.Params()
 	params.tstep = Inf
 	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
 	
+
 	return sum(sol)
 end
 
@@ -66,3 +65,4 @@ function test()
 end
 
 end
+```
