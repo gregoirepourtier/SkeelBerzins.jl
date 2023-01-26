@@ -1,6 +1,7 @@
 # SkeelBerzins.jl
 
 [![CI](https://github.com/gregoirepourtier/SkeelBerzins.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/gregoirepourtier/SkeelBerzins.jl/actions/workflows/ci.yml)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://gregoirepourtier.github.io/SkeelBerzins.jl/stable/)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/)
 
 Solver for one-dimensional parabolic and elliptic nonlinear partial differential equations.
