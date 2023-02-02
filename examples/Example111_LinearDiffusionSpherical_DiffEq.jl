@@ -19,7 +19,7 @@ u(x,0) = exp(1-x^2)
 module Example111_LinearDiffusionSpherical_DiffEq
 
 using SkeelBerzins
-using DifferentialEquations
+
 
 function main()
 

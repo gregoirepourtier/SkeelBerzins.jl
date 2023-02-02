@@ -148,6 +148,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
 
     # Initialize the mass matrix M
     M = ones(pb.npde, pb.Nx)
+    flag_DAE = false
 
     inival_tmp = reshape(pb.inival,(pb.npde,pb.Nx))
 
@@ -166,16 +167,19 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
     for i ∈ 1:pb.npde
         if c[i] == 0 # elliptic equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
             M[i,2:end-1] .= 0
+            flag_DAE = true
         end
 
         if ql[i] == 0 && !pb.singular # For the left boundary, Dirichlet BC(s) leads to a DAE (ignoring singular case)
             M[i,1] = 0
+            flag_DAE = true
         end
 
         if qr[i] == 0  # For the right boundary, Dirichlet BC(s) leads to a DAE
             M[i,end] = 0
+            flag_DAE = true
         end
     end
 
-    return Diagonal(vec(M))
+    return Diagonal(vec(M)),flag_DAE
 end

@@ -18,7 +18,6 @@ u(x,0) = exp(-100*(x-0.25)^2)
 module Example101_LinearDiffusion_DiffEq
 
 using SkeelBerzins
-using DifferentialEquations
 
 
 function main()
@@ -64,13 +63,13 @@ function main()
 
 	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
 	problem   = DifferentialEquations.ODEProblem(pb)
-	sol = DifferentialEquations.solve(problem,Rosenbrock23())
+	sol = DifferentialEquations.solve(problem,Tsit5())
 
 	return sum(sol.u[end])
 end
 
 function test()
-    testval = 3.7210048739504296
+    testval = 3.720992375010752
     main() ≈ testval
 end
 

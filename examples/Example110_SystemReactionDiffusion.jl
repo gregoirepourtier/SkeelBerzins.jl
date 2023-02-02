@@ -24,7 +24,7 @@ u_2(x,0) = 0
 module Example110_SystemReactionDiffusion
 
 using SkeelBerzins
-using StaticArrays
+
 
 function main()
 

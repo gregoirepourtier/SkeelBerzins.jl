@@ -14,7 +14,7 @@ The Julia version must be greater than or equal to 1.6. More information about d
 
 # Installation
 
-To install the package, use the following commands:
+To install the package, use one of the following commands:
 
 1\. From the Julian prompt:
 

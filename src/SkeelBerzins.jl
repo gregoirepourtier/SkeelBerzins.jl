@@ -4,15 +4,16 @@ using BandedMatrices
 using LinearAlgebra
 using SparseArrays
 using SparseDiffTools
-using StaticArrays
 using ExtendableSparse
 
 using RecursiveArrayTools
 using DocStringExtensions
 using Parameters
+using Reexport
 
-import DifferentialEquations
-using LinearSolve
+@reexport using DifferentialEquations
+@reexport using LinearSolve
+@reexport using StaticArrays
 
 # see https://github.com/JuliaDiff/SparseDiffTools.jl#note-about-sparse-differentiation-of-gpuarrays-bandedmatrices-and-blockbandedmatrices
 using ArrayInterfaceBandedMatrices

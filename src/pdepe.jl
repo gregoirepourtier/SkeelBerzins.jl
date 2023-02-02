@@ -115,26 +115,35 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
 
     # Choosing how to initialize the jacobian with sparsity pattern (to review)
     if params.sparsity == :sparseArrays
-        pb.jac = spzeros(Nx*npde,Nx*npde)
+        row = []
+	    column = []
+	    vals = Float64[]
 
         for i ∈ 1:npde
             for j ∈ 1:2*npde
-                pb.jac[i,j] = 1
+                push!(row,i)
+                push!(column,j)
+                push!(vals,1)
             end
         end
-
         for i ∈ (Nx-1)*npde+1:Nx*npde
             for j ∈ (Nx-2)*npde+1:Nx*npde
-                pb.jac[i,j] = 1
+                push!(row,i)
+                push!(column,j)
+                push!(vals,1)
             end
         end
-
         for i ∈ npde+1:npde:(Nx-1)*npde
-            for j ∈ i-npde:i+2*npde-1
-                pb.jac[i:i+npde-1,j] .= 1
+            for k ∈ i:i+npde-1
+                for j ∈ i-npde:i+2*npde-1
+                    push!(row,k)
+                    push!(column,j)
+                    push!(vals,1)
+                end
             end
         end
-    elseif params.sparsity == :exSparse # issue with forwarddiff_color_jacobian!
+        pb.jac = sparse(row,column,vals)
+    elseif params.sparsity == :exSparse # issue with forwarddiff_color_jacobian! ?
         pb.jac = ExtendableSparseMatrix(Nx*npde,Nx*npde)
 
         for i ∈ 1:npde
@@ -155,7 +164,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
             end
         end
         flush!(pb.jac)
-        pb.jac = pb.jac.cscmatrix
+        pb.jac = sparse(pb.jac)
     elseif params.sparsity == :banded
         pb.jac = BandedMatrix{Float64}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1))
     end
@@ -194,7 +203,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         else # Solve time dependent problems (instationary case) via Implicit Euler method
 
             # Build the mass matrix
-            mass_mat_diag = mass_matrix(pb)
+            mass_mat_diag, flag_DAE = mass_matrix(pb)
             mass_mat_vec  = reshape(mass_mat_diag.diag,(npde,Nx))
 
             flag_tstep = params.tstep isa Real
