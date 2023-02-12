@@ -61,7 +61,7 @@ function main()
 
 	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
 	problem   = DifferentialEquations.ODEProblem(pb)
-	sol = DifferentialEquations.solve(problem,Rosenbrock23())
+	sol = DifferentialEquations.solve(problem,Tsit5())
 	
 
 	return sum(sol.u[end])

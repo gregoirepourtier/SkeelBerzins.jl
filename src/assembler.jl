@@ -10,7 +10,7 @@ Performs space discretization following the difference equations described in [1
 Assemble the right-hand side ``f`` to generate an ODE/DAE problem:
 
 ```math
-M \\frac{du}{dt} = f(u,problem,t)
+(M) \\frac{du}{dt} = f(u,problem,t)
 ```
 where the input `problem` is defined as a [`SkeelBerzins.ProblemDefinition`](@ref) structure.
 

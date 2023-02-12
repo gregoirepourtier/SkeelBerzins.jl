@@ -23,6 +23,7 @@ export pdepe
 
 include("utils.jl")
 export Params
+export pdeval
 
 include("assembler.jl")
 

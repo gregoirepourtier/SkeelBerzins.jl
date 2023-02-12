@@ -20,10 +20,14 @@ Params
 ### Compatibility with DifferentialEquations.jl
 
 ```@docs
-SciMLBase.ODEProblem
+DifferentialEquations.ODEProblem
 Base.reshape
 ```
 
+### Interpolation of the obtained solution
+```@docs
+pdeval
+```
 
 ## Private API
 
@@ -54,9 +58,14 @@ SkeelBerzins.implicitEuler_stat!
 SkeelBerzins.mass_matrix
 ```
 
+### Post-processing
+```@docs
+SkeelBerzins.interpolate_sol_time
+```
+
 ### Compatibility with DifferentialEquations.jl
 
 The `ODEFunction` constructor is implicitely defined in the `ODEProblem` and so doesn't need to be considered by the user to solve the problem with the [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/) package.
 ```@docs
-SciMLBase.ODEFunction
+DifferentialEquations.ODEFunction
 ```

@@ -24,6 +24,8 @@ Keyword argument:
 
 Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
 or a 1D Array, depending on the chosen solver.
+Moreover, if the solution is obtained from a time dependent problem, a linear interpolation method can be use to evaluate the solution 
+at any time step within the interval ``(t_0,t_{end})``.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing) where {T1,T2,T3}
 
@@ -194,8 +196,12 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 unP1 = newton_stat(un, params.tstep, 1, pb, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
             end
 
-            if params.hist
+            if params.hist && params.data
+                return unP1, pb, history
+            elseif params.hist
                 return unP1, history
+            elseif params.data
+                return unP1, pb
             end
 
             return unP1
@@ -246,8 +252,14 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 cpt += 1
             end
 
-            if params.hist
-                return results, storage
+            sol = RecursiveArrayTools.DiffEqArray(results,timeSteps)
+
+            if params.hist && params.data
+                return sol, pb, storage
+            elseif params.hist
+                return sol, storage
+            elseif params.data
+                return sol, pb
             end
 
             return RecursiveArrayTools.DiffEqArray(results,timeSteps)

@@ -1,7 +1,7 @@
 name = "SkeelBerzins"
 uuid = "15eb0f9a-d441-4223-9ae5-4829ae804a45"
 authors = ["gregoirepourtier <gpourtier@icloud.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 ArrayInterfaceBandedMatrices = "2e50d22c-5be1-4042-81b1-c572ed69783d"
@@ -16,9 +16,7 @@ RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
-SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 ArrayInterfaceBandedMatrices = "0.1"
@@ -31,6 +29,5 @@ Parameters = "0.12"
 RecursiveArrayTools = "2.3"
 Reexport = "1"
 SparseDiffTools = "1.30"
-SpecialFunctions = "2"
 StaticArrays = "1.5"
 julia = "1.6"

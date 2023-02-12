@@ -25,6 +25,8 @@ makedocs(
                             "110: System of Reaction-Diffusion equations" =>"example110.md",
                             "111: Linear Diffusion equation in spherical coordinates (DiffEq)" =>"example111.md",
                             "112: Linear Diffusion equation in spherical coordinates" =>"example112.md",
+                            "201: Interpolation of Partial Derivatives" =>"example201.md",
+                            "301: PDE Constrained Optimization" =>"example301.md"
                             ]
             ]
 )

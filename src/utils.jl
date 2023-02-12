@@ -223,6 +223,11 @@ $(TYPEDFIELDS)
     """
     tol::Float64 = 1e-10
 
+    """
+    Returns the data of the PDE problem
+    """
+    data::Bool = false
+
 end
 
 
@@ -368,3 +373,96 @@ function newton_stat(b, tau, timeStep, pb, cache, rhs ; tol=1.0e-10, maxit=100, 
 
     throw("convergence failed")
 end
+
+
+"""
+    pdeval(m, xmesh, u_approx, x_eval, pb)
+
+Function that interpolates with respect to the space component the solution obtained by the solver function [`pdepe`](@ref).
+
+Input arguments:
+- `m`: symmetry of the problem (m=0,1,2 for cartesian, cylindrical or spherical).
+- `xmesh`: space discretization.
+- `u_approx`: approximate solution obtained by the solver `pdepe`.
+- `x_eval`: point or vector of points where to interpolate the approximate solution.
+- `pb`: structure defining the problem definition, see [`SkeelBerzins.ProblemDefinition`](@ref).
+
+Returns a tuple ``(u,dudx)`` corresponding to the solution and its partial derivative with respect to the space component
+evaluated in `x_eval`.
+"""
+function pdeval(m, xmesh, u_approx, x_eval, pb)
+
+    if m != pb.m
+        error("The symmetry argument is different from the one used to solve the PDE problem.")
+    end
+
+    u_interp_list  = []
+    du_interp_list = []
+    for pt_x in x_eval
+        if isapprox(pt_x,xmesh[1],atol=1.0e-10*abs(xmesh[2]-xmesh[1]))
+            u_interp,dudx_interp = interpolation(xmesh[1], u_approx[1], xmesh[2], u_approx[2], pt_x, pb)
+
+            push!(u_interp_list,u_interp)
+            push!(du_interp_list,dudx_interp)
+        else
+            idx = searchsortedfirst(xmesh,pt_x)
+
+            if idx==1 || idx > length(xmesh)
+                error("Evaluation point oustide of the spatial discretization.")
+            end
+
+            if pt_x == xmesh[idx-1]
+                push!(u_approx[idx-1])
+            else
+                ul = u_approx[idx-1]
+                ur = u_approx[idx]
+        
+                u_interp, dudx_interp = interpolation(xmesh[idx-1], ul, xmesh[idx], ur, pt_x, pb)
+        
+                push!(u_interp_list,u_interp)
+                push!(du_interp_list,dudx_interp)
+            end
+        end
+    end
+
+    type_tmp = typeof(x_eval)
+    if type_tmp <: AbstractVector
+        return u_interp_list, du_interp_list
+    else
+        return u_interp_list[1], du_interp_list[1]
+    end
+end
+
+
+"""
+    interpolate_sol_time(u_approx,t)
+
+Linear interpolatation of the solution with respect to the time component.
+
+Input arguments:
+- `u_approx`: approximate solution obtained by the solver `pdepe`.
+- `t`: time ``t \\in [t_0,t_{end}]``.
+"""
+function interpolate_sol_time(u_approx, t)
+    if isapprox(t, u_approx.t[1], atol=1.0e-10*abs(u_approx.t[2]-u_approx.t[1]))
+        return u_approx[1]
+    end
+
+    idx = searchsortedfirst(u_approx.t, t)
+
+    if idx==1 || idx > length(u_approx)
+        error("The chosen time is not within the interval.")
+    end
+
+    if t==u_approx.t[idx-1]
+        return u_approx[idx-1]
+    else
+        new_sol_interp = similar(u_approx[idx])
+        dt = u_approx.t[idx]-u_approx.t[idx-1]
+        x1 = (u_approx.t[idx]-t)/dt
+        x0 = (t-u_approx.t[idx-1])/dt
+        new_sol_interp .= x1.*u_approx[idx-1] .+ x0.*u_approx[idx]
+    end
+end
+
+(sol::AbstractDiffEqArray)(t) = interpolate_sol_time(sol,t)
