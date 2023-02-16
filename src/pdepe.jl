@@ -25,7 +25,7 @@ Keyword argument:
 Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
 or a 1D Array, depending on the chosen solver.
 Moreover, if the solution is obtained from a time dependent problem, a linear interpolation method can be use to evaluate the solution 
-at any time step within the interval ``(t_0,t_{end})``.
+at any time step within the interval ``(t_0,t_{end})`` (accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available on the solution object using the command `sol(x_eval,t,pb)`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing) where {T1,T2,T3}
 
@@ -180,13 +180,13 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         # Preallocations for Newton's method
         rhs   = zeros(npde*Nx)
         cache = ForwardColorJacCache(implicitEuler!, rhs, dx=rhs, colorvec=colors, sparsity=pb.jac)
-
-        # To store the history of the Newton solver
-        if params.hist
-            storage = []
-        end
         
         if params.tstep==Inf # Solve time independent problems (stationary case) if user set tstep to Inf -> 1 step Implicit Euler
+
+            # To store the history of the Newton solver
+            if params.hist
+                storage = Tv[]
+            end
             
             un = inival
 
@@ -208,6 +208,11 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         
         else # Solve time dependent problems (instationary case) via Implicit Euler method
 
+            # To store the history of the Newton solver
+            if params.hist
+                storage = Vector{Tv}[]
+            end
+
             # Build the mass matrix
             mass_mat_diag, flag_DAE = mass_matrix(pb)
             mass_mat_vec  = reshape(mass_mat_diag.diag,(npde,Nx))
@@ -221,10 +226,14 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 params.tstep = diff(params.tstep)
             end
             
-            results   = []
-                                    
             un = copy(inival)
-            push!(results,reshape(inival,(npde,Nx)))
+            if pb.npde == 1
+                results   = Vector{Tv}[]
+                push!(results,un)
+            else
+                results   = Matrix{Tv}[]
+                push!(results,reshape(inival,(npde,Nx)))
+            end
             
             cpt = 1
 
@@ -242,7 +251,12 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                     unP1          = newton(un, params.tstep[cpt], t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
                 end
 
-                push!(results,reshape(unP1,(npde,Nx)))
+                if pb.npde == 1
+                    push!(results,unP1)
+                else
+                    push!(results,reshape(unP1,(npde,Nx)))
+                end
+                
                 un .= unP1
                 
                 if params.hist
@@ -262,7 +276,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 return sol, pb
             end
 
-            return RecursiveArrayTools.DiffEqArray(results,timeSteps)
+            return sol
         end
 
     elseif params.solver == :DiffEq # Use the DifferentialEquations.jl package to solve the system of differential equations 

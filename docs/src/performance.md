@@ -10,7 +10,7 @@ In contrast, when using arrays to define the problem, it creates heap-allocation
 ## Example
 
 ```
-using SkeelBerzins, StaticArrays
+using SkeelBerzins
 
 # Define symmetry of the problem
 m = 0

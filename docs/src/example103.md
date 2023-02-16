@@ -16,7 +16,6 @@ for ``m=2`` and ``\alpha = \left(m+1\right)^{-1}``.
 module Example103_NonlinearDiffusion_DiffEq
 
 using SkeelBerzins
-using DifferentialEquations
 
 function main()
 

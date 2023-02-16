@@ -412,7 +412,9 @@ function pdeval(m, xmesh, u_approx, x_eval, pb)
             end
 
             if pt_x == xmesh[idx-1]
-                push!(u_approx[idx-1])
+                push!(u_interp_list,u_approx[idx-1])
+                u_interp, dudx_interp = interpolation(xmesh[idx-1], ul, xmesh[idx], ur, pt_x, pb)
+                push!(du_interp_list,dudx_interp)
             else
                 ul = u_approx[idx-1]
                 ur = u_approx[idx]
@@ -432,6 +434,130 @@ function pdeval(m, xmesh, u_approx, x_eval, pb)
         return u_interp_list[1], du_interp_list[1]
     end
 end
+
+
+"""
+    interpolate_sol_space(u_approx, x_eval, pb, times ; val=true, deriv=true)
+
+Similar as [`pdeval`](@ref), i.e. interpolate the solution and its derivative with respect to the space component.
+
+Input arguments:
+- `u_approx`: approximate solution obtained by the solver `pdepe`.
+- `x_eval`: point or vector of points where to interpolate the approximate solution.
+- `times`: point or vector of points which denotes the time step of the solution.
+- `pb`: structure defining the problem definition, see [`SkeelBerzins.ProblemDefinition`](@ref).
+
+Keyword arguments:
+- `val`: flag to return the evaluation of the solution at the `x_eval` position.
+- `deriv`: flag to return the derivative with respect to the space component  of the solution at the `x_eval` position.
+
+Returns a tuple ``(u,dudx)`` corresponding to the solution and its partial derivative with respect to the space component
+evaluated in `x_eval` at time `times`.
+"""
+function interpolate_sol_space(u_approx, x_eval, times, pb ; val=true, deriv=true)
+
+    u_interp_list = []
+    du_interp_list = []
+
+    u_interp_list_time  = []
+    du_interp_list_time = []
+
+    type_tmp1 = typeof(x_eval)
+
+    cpt_tmp = 1
+
+    for t in times
+
+        sol = interpolate_sol_time(u_approx, t)
+
+        for pt_x in x_eval
+            if isapprox(pt_x,pb.xmesh[1],atol=1.0e-10*abs(pb.xmesh[2]-pb.xmesh[1]))
+                u_interp,dudx_interp = interpolation(pb.xmesh[1], sol[1], pb.xmesh[2], sol[2], pt_x, pb)
+                if val && !deriv
+                    push!(u_interp_list,u_interp)
+                elseif deriv && !val
+                    push!(du_interp_list,dudx_interp)
+                else
+                    push!(u_interp_list,u_interp)
+                    push!(du_interp_list,dudx_interp)
+                end
+            else
+                idx = searchsortedfirst(pb.xmesh,pt_x)
+                if idx==1 || idx > length(pb.xmesh)
+                    error("Evaluation point oustide of the spatial discretization.")
+                end
+
+                ul = sol[idx-1]
+                ur = sol[idx]
+
+                if pt_x == pb.xmesh[idx-1]
+                    u_interp, dudx_interp = interpolation(pb.xmesh[idx-1], ul, pb.xmesh[idx], ur, pt_x, pb)
+                    if val && !deriv
+                        push!(u_interp_list,u_approx[idx-1])
+                    elseif deriv && !val
+                        push!(du_interp_list,dudx_interp)
+                    else
+                        push!(u_interp_list,u_approx[idx-1])
+                        push!(du_interp_list,dudx_interp)
+                    end
+                else
+                    u_interp, dudx_interp = interpolation(pb.xmesh[idx-1], ul, pb.xmesh[idx], ur, pt_x, pb)
+            
+                    if val && !deriv
+                        push!(u_interp_list,u_interp)
+                    elseif deriv && !val
+                        push!(du_interp_list,dudx_interp)
+                    else
+                        push!(u_interp_list,u_interp)
+                        push!(du_interp_list,dudx_interp)
+                    end
+                end
+            end
+        end
+        if type_tmp1 <: AbstractVector # To review for type_tmp1 and type_tmp2 <: AbstractVector?
+            if val && !deriv
+                push!(u_interp_list_time,u_interp_list)
+            elseif deriv && !val
+                push!(du_interp_list_time,du_interp_list)
+            else
+                push!(u_interp_list_time,u_interp_list)
+                push!(du_interp_list_time,du_interp_list)
+            end
+
+        else
+            if val && !deriv
+                push!(u_interp_list_time,u_interp_list[cpt_tmp])
+            elseif deriv && !val
+                push!(du_interp_list_time,du_interp_list[cpt_tmp])
+            else
+                push!(u_interp_list_time,u_interp_list[cpt_tmp])
+                push!(du_interp_list_time,du_interp_list[cpt_tmp])
+            end
+        end
+        cpt_tmp += 1
+    end
+
+    type_tmp2 = typeof(times)
+    if type_tmp2 <: AbstractVector
+        if val && !deriv
+            return u_interp_list_time
+        elseif deriv && !val
+            return du_interp_list_time
+        else
+            return u_interp_list_time, du_interp_list_time
+        end
+    else
+        if val && !deriv
+            return u_interp_list_time[1]
+        elseif deriv && !val
+            return du_interp_list_time[1]
+        else
+            return u_interp_list_time[1], du_interp_list_time[1]
+        end
+    end
+end
+
+(sol::AbstractDiffEqArray)(x_eval, t, pb ; val=true, deriv=true) = interpolate_sol_space(sol, x_eval, t, pb ; val=val, deriv=deriv)
 
 
 """

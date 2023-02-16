@@ -61,6 +61,7 @@ SkeelBerzins.mass_matrix
 ### Post-processing
 ```@docs
 SkeelBerzins.interpolate_sol_time
+SkeelBerzins.interpolate_sol_space
 ```
 
 ### Compatibility with DifferentialEquations.jl

@@ -77,22 +77,28 @@ function main()
     
     seriesI = analytical.(tmesh)
 
-    u    = zeros(length(sol.t))
-    dudx = zeros(length(sol.t))
+    u1    = zeros(length(sol.t))
+    dudx1 = zeros(length(sol.t))
+    u2    = zeros(length(sol.t))
+    dudx2 = zeros(length(sol.t))
     for t ∈ 1:n
-        u[t], dudx[t] = pdeval(pb.m,pb.xmesh,sol.u[t],0,pb)
+        u1[t], dudx1[t] = pdeval(pb.m,pb.xmesh,sol.u[t],0,pb)
+        u2[t], dudx2[t] = sol(0,sol.t[t],pb)
     end
 
-    dudx .= (Ip*D/K) .* dudx
+    dudx1 .= (Ip*D/K) .* dudx1
+    dudx2 .= (Ip*D/K) .* dudx2
 
-    err = norm(seriesI[2:n] - dudx[2:n], Inf)
+    err1 = norm(seriesI[2:n] - dudx1[2:n], Inf)
+    err2 = norm(seriesI[2:n] - dudx2[2:n], Inf)
 
-    return err
+    return err1, err2
 end
 
 function test()
     testval = 0.0733179231620893
-    main() ≈ testval
+    err1,err2 = main()
+     err1 ≈ err2 ≈ testval
 end
 
 end

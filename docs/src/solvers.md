@@ -112,7 +112,7 @@ sol = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan)
 ### Solve linear diffusion problem in cartesian coordinates with homogeneous Neumann boundary conditions using the DifferentialEquations.jl
 
 ```
-using SkeelBerzins, DifferentialEquations
+using SkeelBerzins
 
 # Define symmetry of the problem
 m = 0

@@ -1,7 +1,7 @@
 name = "SkeelBerzins"
 uuid = "15eb0f9a-d441-4223-9ae5-4829ae804a45"
 authors = ["gregoirepourtier <gpourtier@icloud.com>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 ArrayInterfaceBandedMatrices = "2e50d22c-5be1-4042-81b1-c572ed69783d"
