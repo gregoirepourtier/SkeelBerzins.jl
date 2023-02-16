@@ -48,11 +48,14 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     β     = @view xmesh[2:end]
     gamma = (α .+ β) ./ 2
 
+    Tv = eltype(xmesh)
+    Tm = eltype(tspan)
+
     # Number of unknows in the PDE problem
     npde = length(icfun.(xmesh[1]))
 
     inival_tmp = icfun.(xmesh)
-    inival     = zeros(npde,Nx)
+    inival     = zeros(Tv,npde,Nx)
     for i ∈ 1:Nx
         inival[:,i] .= inival_tmp[i]
     end
@@ -60,9 +63,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     # Reshape inival as a one-dimensional array to make it compatible with the solvers from DifferentialEquations.jl
     inival = vec(inival)
 
-    Tv = eltype(xmesh)
     Ti = eltype(npde)
-    Tm = eltype(tspan)
 
     pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T2, T3}()
 
@@ -78,8 +79,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     pb.icfunction    = icfun
     pb.bdfunction    = bdfun
 
-    pb.interpolant   = zeros(npde)
-    pb.d_interpolant = zeros(npde)
+    pb.interpolant   = zeros(Tv,npde)
+    pb.d_interpolant = zeros(Tv,npde)
 
     # Cartesian Coordinates
     if m==0 # (Always Regular case)
@@ -119,7 +120,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     if params.sparsity == :sparseArrays
         row = []
 	    column = []
-	    vals = Float64[]
+	    vals = Tv[]
 
         for i ∈ 1:npde
             for j ∈ 1:2*npde
@@ -146,29 +147,29 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         end
         pb.jac = sparse(row,column,vals)
     elseif params.sparsity == :exSparse # issue with forwarddiff_color_jacobian! ?
-        pb.jac = ExtendableSparseMatrix(Nx*npde,Nx*npde)
+        pb.jac = ExtendableSparseMatrix{Tv,Ti}(Nx*npde,Nx*npde)
 
         for i ∈ 1:npde
             for j ∈ 1:2*npde
-                pb.jac[i,j] = 1
+                pb.jac[i,j] = Tv(1)
             end
         end
 
         for i ∈ (Nx-1)*npde+1:Nx*npde
             for j ∈ (Nx-2)*npde+1:Nx*npde
-                pb.jac[i,j] = 1
+                pb.jac[i,j] = Tv(1)
             end
         end
 
         for i ∈ npde+1:npde:(Nx-1)*npde
             for j ∈ i-npde:i+2*npde-1
-                pb.jac[i:i+npde-1,j] .= 1
+                pb.jac[i:i+npde-1,j] .= Tv(1)
             end
         end
         flush!(pb.jac)
         pb.jac = sparse(pb.jac)
     elseif params.sparsity == :banded
-        pb.jac = BandedMatrix{Float64}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1))
+        pb.jac = BandedMatrix{Tv}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1)) # Not working for general numeric datatypes
     end
     
 
@@ -178,7 +179,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         colors = matrix_colors(pb.jac)
 
         # Preallocations for Newton's method
-        rhs   = zeros(npde*Nx)
+        rhs   = zeros(Tv,npde*Nx)
         cache = ForwardColorJacCache(implicitEuler!, rhs, dx=rhs, colorvec=colors, sparsity=pb.jac)
         
         if params.tstep==Inf # Solve time independent problems (stationary case) if user set tstep to Inf -> 1 step Implicit Euler
