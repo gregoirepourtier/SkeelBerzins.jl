@@ -58,23 +58,28 @@ function main()
     
     seriesI = analytical.(tmesh)
 
-    u    = zeros(length(sol.t))
-    dudx = zeros(length(sol.t))
+    u1    = zeros(length(sol.t))
+    dudx1 = zeros(length(sol.t))
+    u2    = zeros(length(sol.t))
+    dudx2 = zeros(length(sol.t))
     for t ∈ 1:n
-        u[t], dudx[t] = pdeval(pb.m,pb.xmesh,sol.u[t],0,pb)
+        u1[t], dudx1[t] = pdeval(pb.m,pb.xmesh,sol.u[t],0,pb)
+        u2[t], dudx2[t] = sol(0,sol.t[t],pb)
     end
 
-    dudx .= (Ip*D/K) .* dudx
+    dudx1 .= (Ip*D/K) .* dudx1
+    dudx2 .= (Ip*D/K) .* dudx2
 
-    err = norm(seriesI[2:n] - dudx[2:n], Inf)
+    err1 = norm(seriesI[2:n] - dudx1[2:n], Inf)
+    err2 = norm(seriesI[2:n] - dudx2[2:n], Inf)
 
-    return err
+    return err1, err2
 end
-
 
 function test()
     testval = 0.0733179231620893
-    main() ≈ testval
+    err1,err2 = main()
+    err1 ≈ err2 ≈ testval
 end
 
-end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../example112/">« 112: Linear Diffusion equation in spherical coordinates</a><a class="docs-footer-nextpage" href="../example301/">301: PDE Constrained Optimization »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Sunday 12 February 2023 18:12">Sunday 12 February 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../example112/">« 112: Linear Diffusion equation in spherical coordinates</a><a class="docs-footer-nextpage" href="../example301/">301: PDE Constrained Optimization »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 16 February 2023 15:07">Thursday 16 February 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
