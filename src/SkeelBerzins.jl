@@ -15,9 +15,6 @@ using Reexport
 @reexport using LinearSolve
 @reexport using StaticArrays
 
-# see https://github.com/JuliaDiff/SparseDiffTools.jl#note-about-sparse-differentiation-of-gpuarrays-bandedmatrices-and-blockbandedmatrices
-using ArrayInterfaceBandedMatrices
-
 include("pdepe.jl")
 export pdepe
 
