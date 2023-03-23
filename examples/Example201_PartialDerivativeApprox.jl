@@ -60,8 +60,8 @@ function main()
     params.solver = :DiffEq
 
     pb = pdepe(m,pdefun,icfun,bcfun,xmesh,tspan ; params=params)
-    problem = DifferentialEquations.ODEProblem(pb,Rosenbrock23())
-    sol = DifferentialEquations.solve(problem,saveat=1/(n-1))
+    problem = DifferentialEquations.ODEProblem(pb)
+    sol = DifferentialEquations.solve(problem,Rosenbrock23(),saveat=1/(n-1))
 
     function analytical(t)     
         It = 0
@@ -96,9 +96,9 @@ function main()
 end
 
 function test()
-    testval = 0.0733179231620893
+    testval = 0.07193510317047391
     err1,err2 = main()
-     err1 ≈ err2 ≈ testval
+    err1 ≈ err2 ≈ testval
 end
 
 end

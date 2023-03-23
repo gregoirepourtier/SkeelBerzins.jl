@@ -146,28 +146,28 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
             end
         end
         pb.jac = sparse(row,column,vals)
-    elseif params.sparsity == :exSparse # issue with forwarddiff_color_jacobian! ?
-        pb.jac = ExtendableSparseMatrix{Tv,Ti}(Nx*npde,Nx*npde)
+    # elseif params.sparsity == :exSparse # issue with forwarddiff_color_jacobian! ?
+    #     pb.jac = ExtendableSparseMatrix{Tv,Ti}(Nx*npde,Nx*npde)
 
-        for i ∈ 1:npde
-            for j ∈ 1:2*npde
-                pb.jac[i,j] = Tv(1)
-            end
-        end
+    #     for i ∈ 1:npde
+    #         for j ∈ 1:2*npde
+    #             pb.jac[i,j] = Tv(1)
+    #         end
+    #     end
 
-        for i ∈ (Nx-1)*npde+1:Nx*npde
-            for j ∈ (Nx-2)*npde+1:Nx*npde
-                pb.jac[i,j] = Tv(1)
-            end
-        end
+    #     for i ∈ (Nx-1)*npde+1:Nx*npde
+    #         for j ∈ (Nx-2)*npde+1:Nx*npde
+    #             pb.jac[i,j] = Tv(1)
+    #         end
+    #     end
 
-        for i ∈ npde+1:npde:(Nx-1)*npde
-            for j ∈ i-npde:i+2*npde-1
-                pb.jac[i:i+npde-1,j] .= Tv(1)
-            end
-        end
-        flush!(pb.jac)
-        pb.jac = sparse(pb.jac)
+    #     for i ∈ npde+1:npde:(Nx-1)*npde
+    #         for j ∈ i-npde:i+2*npde-1
+    #             pb.jac[i:i+npde-1,j] .= Tv(1)
+    #         end
+    #     end
+    #     flush!(pb.jac)
+    #     pb.jac = sparse(pb.jac)
     elseif params.sparsity == :banded
         pb.jac = BandedMatrix{Tv}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1)) # Not working for general numeric datatypes
     end
@@ -258,7 +258,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                     push!(results,reshape(unP1,(npde,Nx)))
                 end
                 
-                un .= unP1
+                un = unP1
                 
                 if params.hist
                     push!(storage,history)

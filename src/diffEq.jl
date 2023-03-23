@@ -34,9 +34,9 @@ Input arguments:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 - `callback`: (optional) see [callback](https://docs.sciml.ai/DiffEqDocs/stable/features/callback_functions/).
 """
-function DifferentialEquations.ODEProblem(pb::ProblemDefinition,callback=DifferentialEquations.CallbackSet())
+function DifferentialEquations.ODEProblem(pb::ProblemDefinition)
     odefunction=DifferentialEquations.ODEFunction(pb)
-    DifferentialEquations.ODEProblem(odefunction,pb.inival,pb.tspan,pb,callback)
+    DifferentialEquations.ODEProblem(odefunction,pb.inival,pb.tspan,pb)
 end
 
 
