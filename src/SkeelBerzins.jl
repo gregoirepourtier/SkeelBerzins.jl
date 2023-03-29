@@ -4,7 +4,6 @@ using BandedMatrices
 using LinearAlgebra
 using SparseArrays
 using SparseDiffTools
-# using ExtendableSparse
 
 using RecursiveArrayTools
 using DocStringExtensions

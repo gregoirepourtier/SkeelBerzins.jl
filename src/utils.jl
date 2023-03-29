@@ -139,7 +139,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     Jacobi matrix
     """
-    jac::Union{SparseMatrixCSC{Tv, Ti}, BandedMatrix{Tv}} # ExtendableSparseMatrix{Tv, Ti}
+    jac::Union{SparseMatrixCSC{Tv, Ti}, BandedMatrix{Tv}}
 
     """
     Evaluation of the initial condition

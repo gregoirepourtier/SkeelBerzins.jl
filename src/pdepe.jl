@@ -146,28 +146,6 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
             end
         end
         pb.jac = sparse(row,column,vals)
-    # elseif params.sparsity == :exSparse # issue with forwarddiff_color_jacobian! ?
-    #     pb.jac = ExtendableSparseMatrix{Tv,Ti}(Nx*npde,Nx*npde)
-
-    #     for i ∈ 1:npde
-    #         for j ∈ 1:2*npde
-    #             pb.jac[i,j] = Tv(1)
-    #         end
-    #     end
-
-    #     for i ∈ (Nx-1)*npde+1:Nx*npde
-    #         for j ∈ (Nx-2)*npde+1:Nx*npde
-    #             pb.jac[i,j] = Tv(1)
-    #         end
-    #     end
-
-    #     for i ∈ npde+1:npde:(Nx-1)*npde
-    #         for j ∈ i-npde:i+2*npde-1
-    #             pb.jac[i:i+npde-1,j] .= Tv(1)
-    #         end
-    #     end
-    #     flush!(pb.jac)
-    #     pb.jac = sparse(pb.jac)
     elseif params.sparsity == :banded
         pb.jac = BandedMatrix{Tv}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1)) # Not working for general numeric datatypes
     end
@@ -235,10 +213,11 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 results   = Matrix{Tv}[]
                 push!(results,reshape(inival,(npde,Nx)))
             end
-            
-            cpt = 1
 
-            for t ∈ timeSteps[2:end]
+
+            for i ∈ eachindex(timeSteps[2:end])
+
+                t = timeSteps[i+1]
 
                 lmul!(mass_mat_diag,un)
 
@@ -247,9 +226,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 elseif flag_tstep
                     unP1          = newton(un, params.tstep, t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
                 elseif params.hist && !flag_tstep
-                    unP1, history = newton(un, params.tstep[cpt], t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                    unP1, history = newton(un, params.tstep[i+1], t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
                 elseif !flag_tstep
-                    unP1          = newton(un, params.tstep[cpt], t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                    unP1          = newton(un, params.tstep[i+1], t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
                 end
 
                 if pb.npde == 1
@@ -263,8 +242,6 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 if params.hist
                     push!(storage,history)
                 end
-
-                cpt += 1
             end
 
             sol = RecursiveArrayTools.DiffEqArray(results,timeSteps)
@@ -314,6 +291,14 @@ Returns a 1D Array with the solution at the points from the spatial discretizati
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; params=nothing) where {T1,T2,T3}
 
     tspan = (0.0,1.0) # define an arbitrary time interval
+
+    if params === nothing
+        params = Params()
+        params.tstep = Inf
+    else
+        @assert params.tstep == Inf "Time step should be set to Inf to obtain the stationary solution"
+    end
+
     sol = pdepe(m,pdefun,icfun,bdfun,xmesh,tspan ; params=params)
 
     return sol
