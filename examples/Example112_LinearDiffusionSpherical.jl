@@ -12,13 +12,14 @@ and Dirichlet condition in $x=1$ using the implicit Euler method (internal metho
 
 We take for our problem the following initial condition:
 ```math
-u(x,0) = exp(1-x^2)
+u(x,0) = x^2
 ```
 =#
 
 module Example112_LinearDiffusionSpherical
 
 using SkeelBerzins
+using LinearAlgebra
 
 
 function main()
@@ -26,7 +27,7 @@ function main()
     Nx = 21
 
 	L = 1
-	T = 1
+	T = 0.8
 
 	x_mesh = collect(range(0, L, length=Nx))
 	tspan  = (0.1, T)
@@ -34,15 +35,15 @@ function main()
 	m = 2
 
     function pdefun(x,t,u,dudx)
-        c = u
-        f = u*dudx
-        s = 5*u^2 + 4*x*u*dudx
+        c = 1
+        f = dudx
+        s = 0
         
         return c,f,s
     end
 
     function icfun(x)
-        u0 = exp(1-x^2)
+        u0 = x^2
         
         return u0
     end
@@ -50,7 +51,7 @@ function main()
     function bdfun(xl,ul,xr,ur,t)
         pl = 0 # ignored by solver since m=1
         ql = 0 # ignored by solver since m=1
-        pr = ur-exp(-t)
+        pr = ur-(1+6*t)
         qr = 0
     
         return pl,ql,pr,qr
@@ -58,13 +59,14 @@ function main()
 
     sol = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
 
-    return sum(sol.u[end])
+    exact(x,t) = x^2 + 6*t
+
+    return norm(sol.u[end] - exact.(x_mesh,T)) < 1.0e-2
 end
 
 
 function test()
-    testval = 15.637495895370009
-	main() ≈ testval
+	main()
 end
 
 end
