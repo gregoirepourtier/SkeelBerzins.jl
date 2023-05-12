@@ -184,7 +184,7 @@ Mutable structure containing all the keyword arguments for the solver [`pdepe`](
 
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct Params
+Base.@kwdef mutable struct Params
 
     """
     Choice of the time discretization either use `:euler` for internal implicit Euler method or `:DiffEq` for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
