@@ -7,7 +7,6 @@ using SparseDiffTools
 
 using RecursiveArrayTools
 using DocStringExtensions
-using Parameters
 using Reexport
 
 @reexport using DifferentialEquations
