@@ -14,29 +14,29 @@ Input arguments:
 - `quadrature_point`: quadrature point chosen according to the method described in [1].
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function interpolation(xl, ul, xr, ur, qd_point, pb)
+function interpolation(xl, ul, xr, ur, qd_point, singular, m)
 
-    if pb.singular
+    if singular
         h   = xr^2 - xl^2
         tmp = qd_point^2 - xl^2
 
         u    = ul*(1 - (tmp/h)) + ur*(tmp/h)
         dudx = (2*qd_point*(ur-ul))/h
 
-    elseif pb.m==0
+    elseif m==0
         h = xr-xl
 
         u    = (ul*(xr - qd_point) + ur*(qd_point - xl))/h
         dudx = (ur-ul)/h
 
-    elseif pb.m==1
+    elseif m==1
         tmp      = log(xr/xl)
         test_fct = log(qd_point/xl)/tmp
 
         u    = ul*(1 - test_fct) + ur*test_fct
         dudx = (ur-ul)/(qd_point*tmp)
 
-    elseif pb.m==2
+    elseif m==2
         h        = xr-xl
         test_fct = (xr*(qd_point-xl)) / (qd_point*h)
 
@@ -54,39 +54,39 @@ end
 
 Mutating version of the [`interpolation`](@ref) function.
 """
-function interpolation!(interp, dinterp, xl, ul, xr, ur, qd_point, pb)
+function interpolation!(interp, dinterp, xl, ul, xr, ur, qd_point, singular, m, npde)
 
-    if pb.singular
+    if singular
         h   = xr^2 - xl^2
         tmp = qd_point^2 - xl^2
 
-        for i ∈ 1:pb.npde
+        for i ∈ 1:npde
             interp[i]  = ul[i]*(1 - (tmp/h)) + ur[i]*(tmp/h)
             dinterp[i] = (2*qd_point*(ur[i]-ul[i]))/h
         end
 
-    elseif pb.m==0
+    elseif m==0
         h = xr-xl
 
-        for i ∈ 1:pb.npde
+        for i ∈ 1:npde
             interp[i]  = (ul[i]*(xr - qd_point) + ur[i]*(qd_point - xl))/h
             dinterp[i] = (ur[i]-ul[i])/h
         end
 
-    elseif pb.m==1
+    elseif m==1
         tmp      = log(xr/xl)
         test_fct = log(qd_point/xl)/tmp
 
-        for i ∈ 1:pb.npde
+        for i ∈ 1:npde
             interp[i]  = ul[i]*(1 - test_fct) + ur[i]*test_fct
             dinterp[i] = (ur[i]-ul[i])/(qd_point*tmp)
         end
 
-    elseif pb.m==2
+    elseif m==2
         h        = xr-xl
         test_fct = (xr*(qd_point-xl)) / (qd_point*h)
 
-        for i ∈ 1:pb.npde
+        for i ∈ 1:npde
             interp[i]  = ul[i]*(1 - test_fct) + ur[i]*test_fct
             dinterp[i] = (ur[i]-ul[i])*((xr*xl)/(qd_point*qd_point*h))
         end
@@ -103,23 +103,29 @@ Mutable structure storing the problem definition.
 
 $(TYPEDFIELDS)
 """
-mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, 
-                                                                          icFunction<:Function, 
-                                                                          bdFunction<:Function }
+mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, pdeFunction_macro<:Union{Function,Nothing}, 
+                                                                          icFunction<:Function, icFunction_macro<:Union{Function,Nothing}, 
+                                                                          bdFunction<:Function, bdFunction_macro<:Union{Function,Nothing}, Coupling<:Union{Function,Nothing} }
     """
     Number of unknowns
     """
     npde::Ti
+
+    npde_macro::Ti
 
     """
     Number of discretization points
     """
     Nx::Ti
 
+    Nr::Union{Ti,Nothing}
+
     """
     Grid of the problem
     """
     xmesh::Vector{Tv}
+
+    rmesh::Vector{Tv}
 
     """
     Time interval
@@ -131,10 +137,14 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     singular::Bool
 
+    singular_macro::Bool
+
     """
     Symmetry of the problem
     """
     m::Ti
+
+    mr::Ti
 
     """
     Jacobi matrix
@@ -151,6 +161,9 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     ξ::Vector{Tv}
     ζ::Vector{Tv}
+
+    ξ_macro::Vector{Tv}
+    ζ_macro::Vector{Tv}
     
     """
     Function defining the coefficients of the PDE
@@ -167,13 +180,20 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     bdfunction::bdFunction
 
+
+    pdefunction_macro::pdeFunction_macro
+    icfunction_macro::icFunction_macro
+    bdfunction_macro::bdFunction_macro
+
+    coupling::Coupling
+
     """
     Preallocated vectors for interpolation in assemble! function when solving system of PDEs
     """
     interpolant::Vector{Tv}
     d_interpolant::Vector{Tv}
     
-    ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,icFunction,bdFunction}() where {T,Tv,Ti,Tm,pdeFunction,icFunction,bdFunction} = new()
+    ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_macro,icFunction,icFunction_macro,bdFunction,bdFunction_macro,Coupling}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_macro,icFunction,icFunction_macro,bdFunction,bdFunction_macro,Coupling} = new()
 end
 
 
@@ -227,7 +247,6 @@ Base.@kwdef mutable struct Params
     Returns the data of the PDE problem
     """
     data::Bool = false
-
 end
 
 
@@ -239,13 +258,13 @@ Assemble the system for the implicit Euler method.
 function implicitEuler!(y,u,pb,tau,mass,timeStep)
     assemble!(y, u, pb, timeStep)
 
-    y = reshape(y,(pb.npde,pb.Nx))
-    u = reshape(u,(pb.npde,pb.Nx))
+    # y = reshape(y,(pb.npde,pb.Nx))
+    # u = reshape(u,(pb.npde,pb.Nx))
 
     for i ∈ 1:pb.Nx
         for j ∈ 1:pb.npde
-            y[j,i] *= -1
-            y[j,i] += (1/tau)*mass[j,i]*u[j,i]
+            y[j + (i-1)*pb.Nx] *= -1
+            y[j + (i-1)*pb.Nx] += (1/tau)*mass[j + (i-1)*pb.Nx]*u[j + (i-1)*pb.Nx]
         end
     end
 end
@@ -592,3 +611,92 @@ function interpolate_sol_time(u_approx, t)
 end
 
 (sol::AbstractDiffEqArray)(t) = interpolate_sol_time(sol,t)
+
+
+
+function init_problem(m, mesh, icfun) # where {T1}
+
+    # Check if the paramater m is valid
+    @assert m==0 || m==1 || m==2 "Parameter m invalid"
+    # Check conformity of the mesh with respect to the given symmetry
+    @assert m==0 || m>0 && mesh[1]≥0 "Non-conforming mesh"
+
+    # Size of the space discretization
+    N = length(mesh)
+
+    # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
+    singular = m≥1 && mesh[1]==0
+
+    α     = @view mesh[1:end-1]
+    β     = @view mesh[2:end]
+    γ = (α .+ β) ./ 2
+
+
+    # Number of unknows in the PDE problem
+    npde = length(icfun.(mesh[1]))
+
+    return N, singular, α, β, γ, npde
+end
+
+
+function init_inival(inival1, inival2, nx, nr, Tv)
+
+    if nr === nothing
+        return inival1
+    else
+        n = nx*(nr+1)
+        inival = zeros(Tv,n)
+
+        cpt1 = 1
+        for i = 1:nr+1:n
+            inival[i] = inival1[cpt1]
+
+            cpt2 = 1
+            for j = i+1:i+nr
+                inival[j] = inival2[cpt2]
+                cpt2 += 1
+            end
+
+            cpt1 += 1
+        end
+        return inival
+    end    
+end
+
+
+function init_quadrature_pts(m, α, β, γ, singular)
+
+    # Cartesian Coordinates
+    if m==0 # (Always Regular case)
+
+        # Quadrature point ξ and weight ζ for m=0
+        ξ = γ
+        ζ = γ
+    
+    # Cylindrical Polar Coordinates
+    elseif m==1
+        
+        # Quadrature point ξ and weight ζ for m=1
+        if singular
+            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
+            ζ = ((β.^2 .- α.^2) ./ (2 .*log.(β ./ α))) .^(0.5)
+        else # Regular case
+            ξ = (β .- α) ./ log.(β ./ α)
+            ζ = (ξ .* γ ).^(0.5)
+        end
+    
+    # Spherical Polar Coordinates
+    else m==2
+
+        # Quadrature point ξ and weight ζ for m=2
+        if singular
+            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
+        else # Regular case
+            ξ = (α .* β .* log.(β ./ α)) ./ (β .- α)
+        end
+        ζ = (α .* β .* γ).^(1/3)
+    end
+
+    return ξ, ζ
+
+end

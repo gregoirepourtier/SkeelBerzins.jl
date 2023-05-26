@@ -50,5 +50,14 @@ Indeed since in the spatial discretization, we flattened the problem, the soluti
 So by reshaping the solution, we get a solution organised by unknows.
 """
 function Base.reshape(sol::AbstractDiffEqArray, pb::ProblemDefinition)
-    RecursiveArrayTools.DiffEqArray([reshape(sol.u[i],(pb.npde,pb.Nx)) for i=1:length(sol.u)] ,sol.t)
+    if pb.Nr === nothing
+        RecursiveArrayTools.DiffEqArray([reshape(sol.u[i],(pb.npde,pb.Nx)) for i=1:length(sol.u)] ,sol.t)
+    else
+        solutions = RecursiveArrayTools.DiffEqArray[]
+        push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][1:pb.Nr+1:end] for i=1:length(sol.u)],sol.t))
+        for j=2:pb.Nr+1:pb.Nx*(pb.Nr+1)
+            push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][j:j+pb.Nr-1] for i=1:length(sol.u)],sol.t))
+        end
+        solutions
+    end
 end

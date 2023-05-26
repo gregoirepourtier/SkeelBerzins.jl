@@ -8,6 +8,7 @@ using SparseDiffTools
 using RecursiveArrayTools
 using DocStringExtensions
 using Reexport
+using Symbolics
 
 @reexport using DifferentialEquations
 @reexport using LinearSolve
@@ -24,5 +25,6 @@ include("assembler.jl")
 
 include("diffEq.jl")
 
+include("two_scale.jl")
 
 end # module

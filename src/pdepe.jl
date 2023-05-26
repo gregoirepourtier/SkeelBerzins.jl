@@ -27,32 +27,20 @@ or a 1D Array, depending on the chosen solver.
 Moreover, if the solution is obtained from a time dependent problem, a linear interpolation method can be use to evaluate the solution 
 at any time step within the interval ``(t_0,t_{end})`` (accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available on the solution object using the command `sol(x_eval,t,pb)`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing) where {T1,T2,T3}
-
-    # Check if the paramater m is valid
-    @assert m==0 || m==1 || m==2 "Parameter m invalid"
-    # Check conformity of the mesh with respect to the given symmetry
-    @assert m==0 || m>0 && xmesh[1]≥0 "Non-conforming mesh"
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing, mr=nothing, rmesh=nothing, pdefun_macro::T4 = nothing,
+                                                                                                              icfun_macro::T5  = nothing,
+                                                                                                              bdfun_macro::T6  = nothing,
+                                                                                                              coupling::T7     = nothing) where {T1,T2,T3,T4,T5,T6,T7}
 
     if params === nothing
         params = Params()
     end
 
-    # Size of the space discretization
-    Nx = length(xmesh)
-
-    # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
-    singular = m≥1 && xmesh[1]==0
-
-    α     = @view xmesh[1:end-1]
-    β     = @view xmesh[2:end]
-    gamma = (α .+ β) ./ 2
+    Nx, singular, α, β, γ, npde = init_problem(m, xmesh, icfun)
 
     Tv = eltype(xmesh)
     Tm = eltype(tspan)
-
-    # Number of unknows in the PDE problem
-    npde = length(icfun.(xmesh[1]))
+    Ti = eltype(npde)
 
     inival_tmp = icfun.(xmesh)
     inival     = zeros(Tv,npde,Nx)
@@ -60,12 +48,18 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         inival[:,i] .= inival_tmp[i]
     end
 
+    Nr           = nothing
+    inival_macro = nothing
+    if mr !== nothing
+        Nr, singular_macro, α_macro, β_macro, γ_macro, npde_macro = init_problem(mr, rmesh, icfun_macro)
+        inival_macro = icfun_macro.(rmesh)
+    end
+
     # Reshape inival as a one-dimensional array to make it compatible with the solvers from DifferentialEquations.jl
-    inival = vec(inival)
+    inival = init_inival(vec(inival), inival_macro, Nx, Nr, Tv)
 
-    Ti = eltype(npde)
 
-    pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T2, T3}()
+    pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7}()
 
     pb.npde          = npde
     pb.Nx            = Nx
@@ -82,38 +76,24 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     pb.interpolant   = zeros(Tv,npde)
     pb.d_interpolant = zeros(Tv,npde)
 
-    # Cartesian Coordinates
-    if m==0 # (Always Regular case)
+    pb.Nr             = Nr
 
-        # Quadrature point ξ and weight ζ for m=0
-        ξ = gamma
-        ζ = gamma
-    
-    # Cylindrical Polar Coordinates
-    elseif m==1
-        
-        # Quadrature point ξ and weight ζ for m=1
-        if singular
-            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
-        else # Regular case
-            ξ = (β .- α) ./ log.(β ./ α)
-        end
-        ζ = (ξ .* gamma ).^(0.5)
-    
-    # Spherical Polar Coordinates
-    else m==2
+    if mr !== nothing
+        pb.npde_macro     = npde
+        pb.rmesh          = rmesh
+        pb.singular_macro = singular_macro
+        pb.mr             = mr
 
-        # Quadrature point ξ and weight ζ for m=2
-        if singular
-            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
-        else # Regular case
-            ξ = (α .* β .* log.(β ./ α)) ./ (β .- α)
-        end
-        ζ = (α .* β .* gamma).^(1/3)
+        pb.pdefunction_macro = pdefun_macro
+        pb.icfunction_macro  = icfun_macro
+        pb.bdfunction_macro  = bdfun_macro
+
+        pb.coupling = coupling
+
+        pb.ξ_macro, pb.ζ_macro = init_quadrature_pts(mr, α_macro, β_macro, γ_macro, singular_macro)
     end
 
-    pb.ξ = ξ
-    pb.ζ = ζ
+    pb.ξ, pb.ζ = init_quadrature_pts(m, α, β, γ, singular)
 
 
     # Choosing how to initialize the jacobian with sparsity pattern (to review)
@@ -148,6 +128,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         pb.jac = sparse(row,column,vals)
     elseif params.sparsity == :banded
         pb.jac = BandedMatrix{Tv}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1)) # Not working for general numeric datatypes
+    elseif params.sparsity == :symb
+        du0    = copy(inival)
+	    pb.jac = Tv.(Symbolics.jacobian_sparsity((du,u)->assemble!(du,u,pb,0.0),du0,inival))
     end
     
 
@@ -288,7 +271,10 @@ Keyword argument:
 
 Returns a 1D Array with the solution at the points from the spatial discretization `xmesh`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; params=nothing) where {T1,T2,T3}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; params=nothing, mr=nothing, rmesh=nothing, pdefun_macro::T4 = nothing,
+                                                                                                       icfun_micro::T5  = nothing,
+                                                                                                       bdfun_micro::T6  = nothing,
+                                                                                                       coupling::T7     = nothing) where {T1,T2,T3,T4,T5,T6,T7}
 
     tspan = (0.0,1.0) # define an arbitrary time interval
 
