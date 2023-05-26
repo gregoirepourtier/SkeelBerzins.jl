@@ -68,7 +68,7 @@ end
 
 
 function test()
-    testval = 0.04020183138531086
+    testval = 0.04010494653084506
 	main() ≈ testval
 end
 

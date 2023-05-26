@@ -190,7 +190,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
         M = ones(pb.npde, pb.Nx)
         flag_DAE = false
 
-        inival = pb.inival # reshape(pb.inival,(pb.npde,pb.Nx))
+        inival = pb.inival
 
         if pb.npde==1
             pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1], pb.xmesh[end], inival[end], pb.tspan[1])

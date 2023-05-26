@@ -258,13 +258,11 @@ Assemble the system for the implicit Euler method.
 function implicitEuler!(y,u,pb,tau,mass,timeStep)
     assemble!(y, u, pb, timeStep)
 
-    # y = reshape(y,(pb.npde,pb.Nx))
-    # u = reshape(u,(pb.npde,pb.Nx))
-
     for i ∈ 1:pb.Nx
         for j ∈ 1:pb.npde
-            y[j + (i-1)*pb.Nx] *= -1
-            y[j + (i-1)*pb.Nx] += (1/tau)*mass[j + (i-1)*pb.Nx]*u[j + (i-1)*pb.Nx]
+            idx = j + (i-1)*pb.npde
+            y[idx] *= -1
+            y[idx] += (1/tau)*mass[idx]*u[idx]
         end
     end
 end
@@ -278,13 +276,11 @@ Assemble the system for the implicit Euler method (variant method for stationary
 function implicitEuler_stat!(y,u,pb,tau,timeStep)
     assemble!(y, u, pb, timeStep)
 
-    y = reshape(y,(pb.npde,pb.Nx))
-    u = reshape(u,(pb.npde,pb.Nx))
-
     for i ∈ 1:pb.Nx
         for j ∈ 1:pb.npde
-            y[j,i] *= -1
-            y[j,i] += (1/tau)*u[j,i]
+            idx = j + (i-1)*pb.npde
+            y[idx] *= -1
+            y[idx] += (1/tau)*u[idx]
         end
     end
 end
@@ -419,7 +415,7 @@ function pdeval(m, xmesh, u_approx, x_eval, pb)
     du_interp_list = []
     for pt_x in x_eval
         if isapprox(pt_x,xmesh[1],atol=1.0e-10*abs(xmesh[2]-xmesh[1]))
-            u_interp,dudx_interp = interpolation(xmesh[1], u_approx[1], xmesh[2], u_approx[2], pt_x, pb)
+            u_interp,dudx_interp = interpolation(xmesh[1], u_approx[1], xmesh[2], u_approx[2], pt_x, pb.singular, pb.m)
 
             push!(u_interp_list,u_interp)
             push!(du_interp_list,dudx_interp)
@@ -432,13 +428,13 @@ function pdeval(m, xmesh, u_approx, x_eval, pb)
 
             if pt_x == xmesh[idx-1]
                 push!(u_interp_list,u_approx[idx-1])
-                u_interp, dudx_interp = interpolation(xmesh[idx-1], ul, xmesh[idx], ur, pt_x, pb)
+                u_interp, dudx_interp = interpolation(xmesh[idx-1], ul, xmesh[idx], ur, pt_x, pb.singular, pb.m)
                 push!(du_interp_list,dudx_interp)
             else
                 ul = u_approx[idx-1]
                 ur = u_approx[idx]
         
-                u_interp, dudx_interp = interpolation(xmesh[idx-1], ul, xmesh[idx], ur, pt_x, pb)
+                u_interp, dudx_interp = interpolation(xmesh[idx-1], ul, xmesh[idx], ur, pt_x, pb.singular, pb.m)
         
                 push!(u_interp_list,u_interp)
                 push!(du_interp_list,dudx_interp)
@@ -491,7 +487,7 @@ function interpolate_sol_space(u_approx, x_eval, times, pb ; val=true, deriv=tru
 
         for pt_x in x_eval
             if isapprox(pt_x,pb.xmesh[1],atol=1.0e-10*abs(pb.xmesh[2]-pb.xmesh[1]))
-                u_interp,dudx_interp = interpolation(pb.xmesh[1], sol[1], pb.xmesh[2], sol[2], pt_x, pb)
+                u_interp,dudx_interp = interpolation(pb.xmesh[1], sol[1], pb.xmesh[2], sol[2], pt_x, pb.singular, pb.m)
                 if val && !deriv
                     push!(u_interp_list,u_interp)
                 elseif deriv && !val
@@ -510,7 +506,7 @@ function interpolate_sol_space(u_approx, x_eval, times, pb ; val=true, deriv=tru
                 ur = sol[idx]
 
                 if pt_x == pb.xmesh[idx-1]
-                    u_interp, dudx_interp = interpolation(pb.xmesh[idx-1], ul, pb.xmesh[idx], ur, pt_x, pb)
+                    u_interp, dudx_interp = interpolation(pb.xmesh[idx-1], ul, pb.xmesh[idx], ur, pt_x, pb.singular, pb.m)
                     if val && !deriv
                         push!(u_interp_list,u_approx[idx-1])
                     elseif deriv && !val
@@ -520,7 +516,7 @@ function interpolate_sol_space(u_approx, x_eval, times, pb ; val=true, deriv=tru
                         push!(du_interp_list,dudx_interp)
                     end
                 else
-                    u_interp, dudx_interp = interpolation(pb.xmesh[idx-1], ul, pb.xmesh[idx], ur, pt_x, pb)
+                    u_interp, dudx_interp = interpolation(pb.xmesh[idx-1], ul, pb.xmesh[idx], ur, pt_x, pb.singular, pb.m)
             
                     if val && !deriv
                         push!(u_interp_list,u_interp)
