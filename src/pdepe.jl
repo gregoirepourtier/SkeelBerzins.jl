@@ -27,16 +27,12 @@ or a 1D Array, depending on the chosen solver.
 Moreover, if the solution is obtained from a time dependent problem, a linear interpolation method can be use to evaluate the solution 
 at any time step within the interval ``(t_0,t_{end})`` (accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available on the solution object using the command `sol(x_eval,t,pb)`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing) where {T1,T2,T3}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelBerzins.Params()) where {T1,T2,T3}
 
     # Check if the paramater m is valid
     @assert m==0 || m==1 || m==2 "Parameter m invalid"
     # Check conformity of the mesh with respect to the given symmetry
     @assert m==0 || m>0 && xmesh[1]≥0 "Non-conforming mesh"
-
-    if params === nothing
-        params = Params()
-    end
 
     # Size of the space discretization
     Nx = length(xmesh)
@@ -52,16 +48,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     Tm = eltype(tspan)
 
     # Number of unknows in the PDE problem
-    npde = length(icfun.(xmesh[1]))
+    npde = length(icfun(xmesh[1]))
 
-    inival_tmp = icfun.(xmesh)
-    inival     = zeros(Tv,npde,Nx)
-    for i ∈ 1:Nx
-        inival[:,i] .= inival_tmp[i]
-    end
-
-    # Reshape inival as a one-dimensional array to make it compatible with the solvers from DifferentialEquations.jl
-    inival = vec(inival)
+    inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
 
     Ti = eltype(npde)
 
@@ -118,22 +107,22 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
 
     # Choosing how to initialize the jacobian with sparsity pattern (to review)
     if params.sparsity == :sparseArrays
-        row = []
-	    column = []
-	    vals = Tv[]
+        row    = Int64[]
+        column = Int64[]
+	    vals   = Tv[]
 
         for i ∈ 1:npde
             for j ∈ 1:2*npde
                 push!(row,i)
                 push!(column,j)
-                push!(vals,1)
+                push!(vals,one(Tv))
             end
         end
         for i ∈ (Nx-1)*npde+1:Nx*npde
             for j ∈ (Nx-2)*npde+1:Nx*npde
                 push!(row,i)
                 push!(column,j)
-                push!(vals,1)
+                push!(vals,one(Tv))
             end
         end
         for i ∈ npde+1:npde:(Nx-1)*npde
@@ -141,7 +130,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 for j ∈ i-npde:i+2*npde-1
                     push!(row,k)
                     push!(column,j)
-                    push!(vals,1)
+                    push!(vals,one(Tv))
                 end
             end
         end
@@ -149,7 +138,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     elseif params.sparsity == :banded
         pb.jac = BandedMatrix{Tv}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1)) # Not working for general numeric datatypes
     end
-    
+
 
     # Solve via implicit Euler method or an ODE/DAE solver of DifferentialEquations.jl
     if params.solver == :euler # implicit Euler method
