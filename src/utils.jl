@@ -103,15 +103,15 @@ Mutable structure storing the problem definition.
 
 $(TYPEDFIELDS)
 """
-mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, pdeFunction_macro<:Union{Function,Nothing}, 
-                                                                          icFunction<:Function, icFunction_macro<:Union{Function,Nothing}, 
-                                                                          bdFunction<:Function, bdFunction_macro<:Union{Function,Nothing}, Coupling<:Union{Function,Nothing} }
+mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, pdeFunction_micro<:Union{Function,Nothing}, 
+                                                                          icFunction<:Function, icFunction_micro<:Union{Function,Nothing}, 
+                                                                          bdFunction<:Function, bdFunction_micro<:Union{Function,Nothing}, Coupling<:Union{Function,Nothing} }
     """
     Number of unknowns
     """
     npde::Ti
 
-    npde_macro::Ti
+    npde_micro::Ti
 
     """
     Number of discretization points
@@ -137,7 +137,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     singular::Bool
 
-    singular_macro::Bool
+    singular_micro::Bool
 
     """
     Symmetry of the problem
@@ -162,8 +162,8 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     ξ::Vector{Tv}
     ζ::Vector{Tv}
 
-    ξ_macro::Vector{Tv}
-    ζ_macro::Vector{Tv}
+    ξ_micro::Vector{Tv}
+    ζ_micro::Vector{Tv}
     
     """
     Function defining the coefficients of the PDE
@@ -181,9 +181,9 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     bdfunction::bdFunction
 
 
-    pdefunction_macro::pdeFunction_macro
-    icfunction_macro::icFunction_macro
-    bdfunction_macro::bdFunction_macro
+    pdefunction_micro::pdeFunction_micro
+    icfunction_micro::icFunction_micro
+    bdfunction_micro::bdFunction_micro
 
     coupling::Coupling
 
@@ -193,7 +193,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     interpolant::Vector{Tv}
     d_interpolant::Vector{Tv}
     
-    ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_macro,icFunction,icFunction_macro,bdFunction,bdFunction_macro,Coupling}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_macro,icFunction,icFunction_macro,bdFunction,bdFunction_macro,Coupling} = new()
+    ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling} = new()
 end
 
 

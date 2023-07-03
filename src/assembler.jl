@@ -176,7 +176,8 @@ In the case where the mass matrix is identity, we solve a system of ODEs.
 """
 function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
 
-    if pb.Nr !== nothing
+    if pb.Nr !== nothing 
+        ## to modify
 
         flag_DAE = true
 
@@ -184,7 +185,6 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
         M[1,1] = 0
 
         return M, flag_DAE
-
     else
         # Initialize the mass matrix M
         M = ones(pb.npde, pb.Nx)

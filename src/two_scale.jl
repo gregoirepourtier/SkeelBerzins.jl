@@ -4,14 +4,14 @@ function two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, idx_micro)
 
     N        = pb.Nr
     mesh     = pb.rmesh 
-    ξ        = pb.ξ_macro
-    ζ        = pb.ζ_macro
-    singular = pb.singular_macro
+    ξ        = pb.ξ_micro
+    ζ        = pb.ζ_micro
+    singular = pb.singular_micro
     m        = pb.mr
-    npde     = pb.npde_macro
+    npde     = pb.npde_micro
 
-    pdefun = pb.pdefunction_macro
-    bdfun  = pb.bdfunction_macro
+    pdefun   = pb.pdefunction_micro
+    bdfun    = pb.bdfunction_micro
 
     coupling = pb.coupling
 

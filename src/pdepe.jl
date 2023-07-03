@@ -27,9 +27,9 @@ or a 1D Array, depending on the chosen solver.
 Moreover, if the solution is obtained from a time dependent problem, a linear interpolation method can be use to evaluate the solution 
 at any time step within the interval ``(t_0,t_{end})`` (accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available on the solution object using the command `sol(x_eval,t,pb)`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing, mr=nothing, rmesh=nothing, pdefun_macro::T4 = nothing,
-                                                                                                              icfun_macro::T5  = nothing,
-                                                                                                              bdfun_macro::T6  = nothing,
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing, mr=nothing, rmesh=nothing, pdefun_micro::T4 = nothing,
+                                                                                                              icfun_micro::T5  = nothing,
+                                                                                                              bdfun_micro::T6  = nothing,
                                                                                                               coupling::T7     = nothing) where {T1,T2,T3,T4,T5,T6,T7}
 
     if params === nothing
@@ -49,14 +49,14 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     end
 
     Nr           = nothing
-    inival_macro = nothing
+    inival_micro = nothing
     if mr !== nothing
-        Nr, singular_macro, α_macro, β_macro, γ_macro, npde_macro = init_problem(mr, rmesh, icfun_macro)
-        inival_macro = icfun_macro.(rmesh)
+        Nr, singular_micro, α_micro, β_micro, γ_micro, npde_micro = init_problem(mr, rmesh, icfun_micro)
+        inival_micro = icfun_micro.(rmesh)
     end
 
     # Reshape inival as a one-dimensional array to make it compatible with the solvers from DifferentialEquations.jl
-    inival = init_inival(vec(inival), inival_macro, Nx, Nr, Tv)
+    inival = init_inival(vec(inival), inival_micro, Nx, Nr, Tv)
 
 
     pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7}()
@@ -79,18 +79,18 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     pb.Nr             = Nr
 
     if mr !== nothing
-        pb.npde_macro     = npde
+        pb.npde_micro     = npde
         pb.rmesh          = rmesh
-        pb.singular_macro = singular_macro
+        pb.singular_micro = singular_micro
         pb.mr             = mr
 
-        pb.pdefunction_macro = pdefun_macro
-        pb.icfunction_macro  = icfun_macro
-        pb.bdfunction_macro  = bdfun_macro
+        pb.pdefunction_micro = pdefun_micro
+        pb.icfunction_micro  = icfun_micro
+        pb.bdfunction_micro  = bdfun_micro
 
         pb.coupling = coupling
 
-        pb.ξ_macro, pb.ζ_macro = init_quadrature_pts(mr, α_macro, β_macro, γ_macro, singular_macro)
+        pb.ξ_micro, pb.ζ_micro = init_quadrature_pts(mr, α_micro, β_micro, γ_micro, singular_micro)
     end
 
     pb.ξ, pb.ζ = init_quadrature_pts(m, α, β, γ, singular)
@@ -271,7 +271,7 @@ Keyword argument:
 
 Returns a 1D Array with the solution at the points from the spatial discretization `xmesh`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; params=nothing, mr=nothing, rmesh=nothing, pdefun_macro::T4 = nothing,
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; params=nothing, mr=nothing, rmesh=nothing, pdefun_micro::T4 = nothing,
                                                                                                        icfun_micro::T5  = nothing,
                                                                                                        bdfun_micro::T6  = nothing,
                                                                                                        coupling::T7     = nothing) where {T1,T2,T3,T4,T5,T6,T7}
