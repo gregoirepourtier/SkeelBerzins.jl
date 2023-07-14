@@ -54,7 +54,9 @@ function Base.reshape(sol::AbstractDiffEqArray, pb::ProblemDefinition)
         RecursiveArrayTools.DiffEqArray([reshape(sol.u[i],(pb.npde,pb.Nx)) for i=1:length(sol.u)] ,sol.t)
     else
         solutions = RecursiveArrayTools.DiffEqArray[]
-        push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][1:pb.npde+pb.Nr:end] for i=1:length(sol.u)],sol.t))
+        for j=1:pb.npde
+            push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][j:pb.npde+pb.Nr:end] for i=1:length(sol.u)],sol.t))
+        end
         for j=pb.npde+1:pb.Nr+pb.npde:pb.Nx*(pb.npde+pb.Nr)
             push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][j:j+pb.Nr-1] for i=1:length(sol.u)],sol.t))
         end

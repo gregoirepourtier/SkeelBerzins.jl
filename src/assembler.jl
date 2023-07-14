@@ -45,6 +45,9 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         end
         @views interpolation!(interpolant, d_interpolant, pb.xmesh[1], u[1 : pb.npde], pb.xmesh[2], u[pb.npde+1 + Nr_tmp : 2*pb.npde + Nr_tmp], pb.ξ[1], pb.singular, pb.m, pb.npde)
         @views cl, fl, sl  = pb.pdefunction(pb.xmesh[1], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
+        if pb.Nr !== nothing
+            @views sl = pb.coupling_macro(pb.xmesh[1], t, SVector{npde}(interpolant), u[pb.npde+1 : pb.npde + Nr_tmp])
+        end
     end
 
     # Left boundary of the domain
@@ -92,6 +95,9 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         else
             @views interpolation!(interpolant, d_interpolant, pb.xmesh[i], u[idx_u : idx_u + pb.npde - 1], pb.xmesh[i+1], u[idx_uP1 : idx_uP1 + pb.npde - 1], pb.ξ[i], pb.singular, pb.m, pb.npde)
             @views cr, fr, sr = pb.pdefunction(pb.xmesh[i], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
+            if pb.Nr !== nothing
+                @views sr = pb.coupling_macro(pb.xmesh[i], t, SVector{npde}(interpolant), u[idx_u+1 : idx_uP1-1])
+            end
         end
 
         frac1 = (pb.ζ[i]^(pb.m+1) - pb.xmesh[i]^(pb.m+1))/(pb.m+1)
@@ -184,6 +190,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
         # M = Diagonal(ones(pb.Nx*(pb.Nr+1)))
         M = Diagonal(ones(pb.Nx*(pb.npde + pb.Nr)))
         M[1,1] = 0
+        M[end-pb.Nr,end-pb.Nr] = 0
 
         return M, flag_DAE
     else
