@@ -34,7 +34,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2 + Nr_tmp], pb.ξ[1], pb.singular, pb.m)
         cl, fl, sl  = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
     else
-        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1 : pb.npde], pb.xmesh[end], u[end-pb.npde+1 : end], t)
+        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1 : pb.npde], pb.xmesh[end], u[end - Nr_tmp - pb.npde+1 : end - Nr_tmp], t)
 
         if type_tmp <: AbstractFloat
             interpolant   = pb.interpolant
@@ -43,7 +43,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
             interpolant   = Array{type_tmp,1}(undef,pb.npde)
             d_interpolant = Array{type_tmp,1}(undef,pb.npde)
         end
-        @views interpolation!(interpolant, d_interpolant, pb.xmesh[1], u[1 : pb.npde], pb.xmesh[2], u[pb.npde+1 : 2*pb.npde], pb.ξ[1], pb.singular, pb.m, pb.npde)
+        @views interpolation!(interpolant, d_interpolant, pb.xmesh[1], u[1 : pb.npde], pb.xmesh[2], u[pb.npde+1 + Nr_tmp : 2*pb.npde + Nr_tmp], pb.ξ[1], pb.singular, pb.m, pb.npde)
         @views cl, fl, sl  = pb.pdefunction(pb.xmesh[1], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
     end
 
@@ -72,7 +72,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
     if pb.Nr !== nothing
         idx_u   = 1
-        idx_uP1 = idx_u + Nr_tmp + 1
+        idx_uP1 = pb.npde + Nr_tmp + 1
 
         two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, 1)
     end
@@ -80,17 +80,17 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Interior meshpoints of the domain
     for i ∈ 2:pb.Nx-1
 
-        idx_u   = i + (i-1)*Nr_tmp
-        idx_uP1 = idx_u + Nr_tmp + 1
+        idx_u   = 1 + (i-1)*pb.npde + (i-1)*Nr_tmp
+        idx_uP1 = idx_u + Nr_tmp + pb.npde
 
         if pb.npde==1
             interpolant, d_interpolant = interpolation(pb.xmesh[i], u[idx_u], pb.xmesh[i+1], u[idx_uP1], pb.ξ[i], pb.singular, pb.m)
             cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
             if pb.Nr !== nothing
-                @views sr = pb.coupling(pb.xmesh[i], t, interpolant, u[idx_u+1 : idx_uP1-1])
+                @views sr = pb.coupling_macro(pb.xmesh[i], t, interpolant, u[idx_u+1 : idx_uP1-1])
             end
         else
-            @views interpolation!(interpolant, d_interpolant, pb.xmesh[i], u[(i-1)*pb.npde+1 : i*pb.npde], pb.xmesh[i+1], u[i*pb.npde+1 : (i+1)*pb.npde], pb.ξ[i], pb.singular, pb.m, pb.npde)
+            @views interpolation!(interpolant, d_interpolant, pb.xmesh[i], u[idx_u : idx_u + pb.npde - 1], pb.xmesh[i+1], u[idx_uP1 : idx_uP1 + pb.npde - 1], pb.ξ[i], pb.singular, pb.m, pb.npde)
             @views cr, fr, sr = pb.pdefunction(pb.xmesh[i], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
         end
 
@@ -100,17 +100,17 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         if pb.singular
             for j ∈ 1:pb.npde
                 if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j + (idx_u-1)*pb.npde] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j])
+                    du[j + idx_u - 1] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j])
                 else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j + (idx_u-1)*pb.npde] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j])
+                    du[j + idx_u - 1] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j])
                 end
             end
         else # Regular Case
             for j ∈ 1:pb.npde
                 if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j + (idx_u-1)*pb.npde] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j])
+                    du[j + idx_u - 1] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j]) # j + (idx_u-1)*pb.npde
                 else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j + (idx_u-1)*pb.npde] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j])
+                    du[j + idx_u - 1] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j])
                 end
             end
         end
@@ -127,33 +127,33 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Right boundary of the domain
     frac = (pb.xmesh[end]^(pb.m+1) - pb.ζ[end]^(pb.m+1))/(pb.m+1)
 
-    idx_last = pb.Nx + (pb.Nx-1)*Nr_tmp
+    idx_last = pb.npde*(pb.Nx-1) + (pb.Nx-1)*Nr_tmp + 1 # pb.Nx + (pb.Nx-1)*Nr_tmp
 
     if pb.singular
         for i ∈ 1:pb.npde
             if qr[i] ≠ 0 && cl[i] ≠ 0
-                du[i + (idx_last-1)*pb.npde] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i])) / (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i])
+                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i])) / (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i]) # i + (idx_last-1)*pb.npde
             elseif qr[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i + (idx_last-1)*pb.npde] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i]))
+                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i]))
             else
-                du[i + (idx_last-1)*pb.npde] = pr[i]
+                du[i + idx_last - 1] = pr[i]
             end
         end
     else # Regular Case
         for i ∈ 1:pb.npde
             if qr[i] ≠ 0 && cl[i] ≠ 0
-                du[i + (idx_last-1)*pb.npde] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ξ[end]^pb.m *fl[i] - frac*sl[i])) / (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i])
+                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ξ[end]^pb.m *fl[i] - frac*sl[i])) / (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i])
             elseif qr[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i + (idx_last-1)*pb.npde] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ξ[end]^pb.m *fl[i] - frac*sl[i]))
+                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ξ[end]^pb.m *fl[i] - frac*sl[i]))
             else
-                du[i + (idx_last-1)*pb.npde] = pr[i]
+                du[i + idx_last - 1] = pr[i]
             end
         end
     end
 
     if pb.Nr !== nothing
         idx_u   = idx_last
-        idx_uP1 = idx_last + Nr_tmp + 1 # doesn't actually exist
+        idx_uP1 = idx_last + Nr_tmp + pb.npde # doesn't actually exist
 
         two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, pb.Nx)
     end
@@ -181,7 +181,8 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
 
         flag_DAE = true
 
-        M = Diagonal(ones(pb.Nx*(pb.Nr+1)))
+        # M = Diagonal(ones(pb.Nx*(pb.Nr+1)))
+        M = Diagonal(ones(pb.Nx*(pb.npde + pb.Nr)))
         M[1,1] = 0
 
         return M, flag_DAE

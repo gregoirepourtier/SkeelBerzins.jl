@@ -27,14 +27,11 @@ or a 1D Array, depending on the chosen solver.
 Moreover, if the solution is obtained from a time dependent problem, a linear interpolation method can be use to evaluate the solution 
 at any time step within the interval ``(t_0,t_{end})`` (accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available on the solution object using the command `sol(x_eval,t,pb)`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothing, mr=nothing, rmesh=nothing, pdefun_micro::T4 = nothing,
-                                                                                                              icfun_micro::T5  = nothing,
-                                                                                                              bdfun_micro::T6  = nothing,
-                                                                                                              coupling::T7     = nothing) where {T1,T2,T3,T4,T5,T6,T7}
-
-    if params === nothing
-        params = Params()
-    end
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelBerzins.Params(), mr=nothing, rmesh=nothing, pdefun_micro::T4   = nothing,
+                                                                                                                            icfun_micro::T5    = nothing,
+                                                                                                                            bdfun_micro::T6    = nothing,
+                                                                                                                            coupling_macro::T7 = nothing,
+                                                                                                                            coupling_micro::T8 = nothing) where {T1,T2,T3,T4,T5,T6,T7,T8}
 
     Nx, singular, α, β, γ, npde = init_problem(m, xmesh, icfun)
 
@@ -42,11 +39,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     Tm = eltype(tspan)
     Ti = eltype(npde)
 
-    inival_tmp = icfun.(xmesh)
-    inival     = zeros(Tv,npde,Nx)
-    for i ∈ 1:Nx
-        inival[:,i] .= inival_tmp[i]
-    end
+    inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
+
+    # display(inival)
 
     Nr           = nothing
     inival_micro = nothing
@@ -55,11 +50,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         inival_micro = icfun_micro.(rmesh)
     end
 
-    # Reshape inival as a one-dimensional array to make it compatible with the solvers from DifferentialEquations.jl
-    inival = init_inival(vec(inival), inival_micro, Nx, Nr, Tv)
+    inival = init_inival(inival, inival_micro, Nx, Nr, npde, Tv)
 
-
-    pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7}()
+    pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7, T8}()
 
     pb.npde          = npde
     pb.Nx            = Nx
@@ -79,7 +72,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
     pb.Nr             = Nr
 
     if mr !== nothing
-        pb.npde_micro     = npde
+        pb.npde_micro     = 1 # to change
         pb.rmesh          = rmesh
         pb.singular_micro = singular_micro
         pb.mr             = mr
@@ -88,7 +81,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
         pb.icfunction_micro  = icfun_micro
         pb.bdfunction_micro  = bdfun_micro
 
-        pb.coupling = coupling
+        pb.coupling_macro = coupling_macro
+        pb.coupling_micro = coupling_micro
 
         pb.ξ_micro, pb.ζ_micro = init_quadrature_pts(mr, α_micro, β_micro, γ_micro, singular_micro)
     end
@@ -98,22 +92,22 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
 
     # Choosing how to initialize the jacobian with sparsity pattern (to review)
     if params.sparsity == :sparseArrays
-        row = []
-	    column = []
-	    vals = Tv[]
+        row    = Int64[]
+	    column = Int64[]
+	    vals   = Tv[]
 
         for i ∈ 1:npde
             for j ∈ 1:2*npde
                 push!(row,i)
                 push!(column,j)
-                push!(vals,1)
+                push!(vals,one(Tv))
             end
         end
         for i ∈ (Nx-1)*npde+1:Nx*npde
             for j ∈ (Nx-2)*npde+1:Nx*npde
                 push!(row,i)
                 push!(column,j)
-                push!(vals,1)
+                push!(vals,one(Tv))
             end
         end
         for i ∈ npde+1:npde:(Nx-1)*npde
@@ -121,7 +115,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
                 for j ∈ i-npde:i+2*npde-1
                     push!(row,k)
                     push!(column,j)
-                    push!(vals,1)
+                    push!(vals,one(Tv))
                 end
             end
         end
@@ -133,6 +127,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=nothin
 	    pb.jac = Tv.(Symbolics.jacobian_sparsity((du,u)->assemble!(du,u,pb,0.0),du0,inival))
     end
     
+    # display(pb.jac[1:14,1:14])
 
     # Solve via implicit Euler method or an ODE/DAE solver of DifferentialEquations.jl
     if params.solver == :euler # implicit Euler method

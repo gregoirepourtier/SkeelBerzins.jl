@@ -105,7 +105,7 @@ $(TYPEDFIELDS)
 """
 mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, pdeFunction_micro<:Union{Function,Nothing}, 
                                                                           icFunction<:Function, icFunction_micro<:Union{Function,Nothing}, 
-                                                                          bdFunction<:Function, bdFunction_micro<:Union{Function,Nothing}, Coupling<:Union{Function,Nothing} }
+                                                                          bdFunction<:Function, bdFunction_micro<:Union{Function,Nothing}, Coupling_macro<:Union{Function,Nothing}, Coupling_micro<:Union{Function,Nothing} }
     """
     Number of unknowns
     """
@@ -185,7 +185,8 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     icfunction_micro::icFunction_micro
     bdfunction_micro::bdFunction_micro
 
-    coupling::Coupling
+    coupling_macro::Coupling_macro
+    coupling_micro::Coupling_micro
 
     """
     Preallocated vectors for interpolation in assemble! function when solving system of PDEs
@@ -193,7 +194,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     interpolant::Vector{Tv}
     d_interpolant::Vector{Tv}
     
-    ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling} = new()
+    ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro} = new()
 end
 
 
@@ -610,7 +611,7 @@ end
 
 
 
-function init_problem(m, mesh, icfun) # where {T1}
+function init_problem(m, mesh, icfun::T1) where {T1}
 
     # Check if the paramater m is valid
     @assert m==0 || m==1 || m==2 "Parameter m invalid"
@@ -623,37 +624,36 @@ function init_problem(m, mesh, icfun) # where {T1}
     # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
     singular = m≥1 && mesh[1]==0
 
-    α     = @view mesh[1:end-1]
-    β     = @view mesh[2:end]
+    α = @view mesh[1:end-1]
+    β = @view mesh[2:end]
     γ = (α .+ β) ./ 2
 
-
     # Number of unknows in the PDE problem
-    npde = length(icfun.(mesh[1]))
+    npde = length(icfun(mesh[1]))
 
     return N, singular, α, β, γ, npde
 end
 
 
-function init_inival(inival1, inival2, nx, nr, Tv)
+function init_inival(inival1, inival2, nx, nr, npde_x, Tv)
 
     if nr === nothing
         return inival1
     else
-        n = nx*(nr+1)
+        n = npde_x*nx + nx*nr
         inival = zeros(Tv,n)
 
         cpt1 = 1
-        for i = 1:nr+1:n
-            inival[i] = inival1[cpt1]
+        for i = 1:nr+npde_x:n
+            inival[i:i+npde_x-1] = inival1[cpt1:cpt1+npde_x-1]
 
             cpt2 = 1
-            for j = i+1:i+nr
+            for j = i+npde_x:i+npde_x+nr-1
                 inival[j] = inival2[cpt2]
                 cpt2 += 1
             end
 
-            cpt1 += 1
+            cpt1 += npde_x
         end
         return inival
     end    
