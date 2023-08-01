@@ -120,12 +120,16 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
 
     Nr::Union{Ti,Nothing}
 
+    Nx_marked::Ti
+
     """
     Grid of the problem
     """
     xmesh::Vector{Tv}
 
     rmesh::Vector{Tv}
+
+    xmesh_marked::Vector{Tv}
 
     """
     Time interval
@@ -193,6 +197,8 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     interpolant::Vector{Tv}
     d_interpolant::Vector{Tv}
+
+    markers::Vector{Bool}
     
     ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro} = new()
 end
@@ -635,28 +641,33 @@ function init_problem(m, mesh, icfun::T1) where {T1}
 end
 
 
-function init_inival(inival1, inival2, nx, nr, npde_x, Tv)
+function init_inival(inival1, inival2, nx, nr, npde_x, markers, nx_marked, Tv)
 
-    if nr === nothing
-        return inival1
-    else
-        n = npde_x*nx + nx*nr
-        inival = zeros(Tv,n)
+    n = npde_x*nx + nx_marked*nr
+    inival = zeros(Tv,n)
 
-        cpt1 = 1
-        for i = 1:nr+npde_x:n
-            inival[i:i+npde_x-1] = inival1[cpt1:cpt1+npde_x-1]
+    i    = 1
+    tmp  = 1
+    cpt1 = 1
+    while (i < n) # for i = 1:n # nr+npde_x
+        inival[i:i+npde_x-1] = inival1[cpt1:cpt1+npde_x-1]
 
+        if markers[tmp]
             cpt2 = 1
             for j = i+npde_x:i+npde_x+nr-1
                 inival[j] = inival2[cpt2]
                 cpt2 += 1
             end
-
-            cpt1 += npde_x
+            i += npde_x + nr
+        else
+            i += npde_x
         end
-        return inival
-    end    
+
+        cpt1 += npde_x
+        tmp  += 1
+    end
+
+    inival
 end
 
 

@@ -31,7 +31,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
                                                                                                                             icfun_micro::T5    = nothing,
                                                                                                                             bdfun_micro::T6    = nothing,
                                                                                                                             coupling_macro::T7 = nothing,
-                                                                                                                            coupling_micro::T8 = nothing) where {T1,T2,T3,T4,T5,T6,T7,T8}
+                                                                                                                            coupling_micro::T8 = nothing,
+                                                                                                                            markers            = nothing) where {T1,T2,T3,T4,T5,T6,T7,T8}
 
     Nx, singular, α, β, γ, npde = init_problem(m, xmesh, icfun)
 
@@ -48,9 +49,11 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
     if mr !== nothing
         Nr, singular_micro, α_micro, β_micro, γ_micro, npde_micro = init_problem(mr, rmesh, icfun_micro)
         inival_micro = icfun_micro.(rmesh)
+        xmesh_marked = xmesh[markers]
+        nx_marked = length(xmesh_marked)
     end
 
-    inival = init_inival(inival, inival_micro, Nx, Nr, npde, Tv)
+    inival = Nr === nothing ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers, nx_marked, Tv)
 
     pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7, T8}()
 
@@ -70,9 +73,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
     pb.d_interpolant = zeros(Tv,npde)
 
     pb.Nr             = Nr
-
     if mr !== nothing
-        pb.npde_micro     = 1 # to change
+        pb.npde_micro     = npde_micro # only considered for npde_micro=1
         pb.rmesh          = rmesh
         pb.singular_micro = singular_micro
         pb.mr             = mr
@@ -85,6 +87,10 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
         pb.coupling_micro = coupling_micro
 
         pb.ξ_micro, pb.ζ_micro = init_quadrature_pts(mr, α_micro, β_micro, γ_micro, singular_micro)
+
+        pb.markers      = markers
+        pb.Nx_marked    = nx_marked
+        pb.xmesh_marked = xmesh_marked
     end
 
     pb.ξ, pb.ζ = init_quadrature_pts(m, α, β, γ, singular)
@@ -127,7 +133,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 	    pb.jac = Tv.(Symbolics.jacobian_sparsity((du,u)->assemble!(du,u,pb,0.0),du0,inival))
     end
     
-    # display(pb.jac[1:14,1:14])
+    # tmp = 14
+    # display(pb.jac[tmp:tmp+13,tmp:tmp+13])
 
     # Solve via implicit Euler method or an ODE/DAE solver of DifferentialEquations.jl
     if params.solver == :euler # implicit Euler method

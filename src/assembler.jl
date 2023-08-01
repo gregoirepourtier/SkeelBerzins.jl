@@ -73,18 +73,27 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         end
     end
 
-    if pb.Nr !== nothing
+    cpt_marker = 0
+
+    if (pb.Nr !== nothing) && pb.markers[1]
         idx_u   = 1
         idx_uP1 = pb.npde + Nr_tmp + 1
 
         two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, 1)
-    end
 
+        cpt_marker += 1 
+    end
+    
     # Interior meshpoints of the domain
     for i ∈ 2:pb.Nx-1
 
-        idx_u   = 1 + (i-1)*pb.npde + (i-1)*Nr_tmp
-        idx_uP1 = idx_u + Nr_tmp + pb.npde
+        # review the indexing here
+        idx_u   = 1 + (i-1)*pb.npde + cpt_marker*Nr_tmp
+        if pb.Nr !== nothing
+            idx_uP1 = pb.markers[i] ? idx_u + Nr_tmp + pb.npde : idx_u + pb.npde
+        else
+            idx_uP1 = idx_u + Nr_tmp + pb.npde
+        end
 
         if pb.npde==1
             interpolant, d_interpolant = interpolation(pb.xmesh[i], u[idx_u], pb.xmesh[i+1], u[idx_uP1], pb.ξ[i], pb.singular, pb.m)
@@ -121,8 +130,9 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
             end
         end
 
-        if pb.Nr !== nothing
+        if (pb.Nr !== nothing) && pb.markers[i]
             two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, i)
+            cpt_marker += 1
         end
 
         cl = cr
@@ -133,8 +143,8 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Right boundary of the domain
     frac = (pb.xmesh[end]^(pb.m+1) - pb.ζ[end]^(pb.m+1))/(pb.m+1)
 
-    idx_last = pb.npde*(pb.Nx-1) + (pb.Nx-1)*Nr_tmp + 1 # pb.Nx + (pb.Nx-1)*Nr_tmp
-
+    idx_last =  1 + (pb.Nx-1)*pb.npde + cpt_marker*Nr_tmp
+               
     if pb.singular
         for i ∈ 1:pb.npde
             if qr[i] ≠ 0 && cl[i] ≠ 0
@@ -157,7 +167,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         end
     end
 
-    if pb.Nr !== nothing
+    if (pb.Nr !== nothing) && pb.markers[end]
         idx_u   = idx_last
         idx_uP1 = idx_last + Nr_tmp + pb.npde # doesn't actually exist
 
@@ -188,9 +198,11 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
         flag_DAE = true
 
         # M = Diagonal(ones(pb.Nx*(pb.Nr+1)))
-        M = Diagonal(ones(pb.Nx*(pb.npde + pb.Nr)))
+        # M = Diagonal(ones(pb.Nx*(pb.npde + pb.Nr)))
+        M = Diagonal(ones(pb.npde*pb.Nx + pb.Nx_marked*pb.Nr))
         M[1,1] = 0
         M[end-pb.Nr,end-pb.Nr] = 0
+        M[end-pb.Nr-1,end-pb.Nr-1] = 0
 
         return M, flag_DAE
     else
