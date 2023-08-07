@@ -646,25 +646,21 @@ function init_inival(inival1, inival2, nx, nr, npde_x, markers, nx_marked, Tv)
     n = npde_x*nx + nx_marked*nr
     inival = zeros(Tv,n)
 
-    i    = 1
-    tmp  = 1
-    cpt1 = 1
-    while (i < n) # for i = 1:n # nr+npde_x
-        inival[i:i+npde_x-1] = inival1[cpt1:cpt1+npde_x-1]
+    i = 1
+    for idx_xmesh ∈ 1:nx
+        idx_local = (idx_xmesh-1)*npde_x + 1
+        inival[i:i+npde_x-1] = inival1[idx_local:idx_local+npde_x-1]
 
-        if markers[tmp]
-            cpt2 = 1
+        if markers[idx_xmesh]
+            cpt_nr = 1
             for j = i+npde_x:i+npde_x+nr-1
-                inival[j] = inival2[cpt2]
-                cpt2 += 1
+                inival[j] = inival2[cpt_nr]
+                cpt_nr += 1
             end
             i += npde_x + nr
         else
             i += npde_x
         end
-
-        cpt1 += npde_x
-        tmp  += 1
     end
 
     inival

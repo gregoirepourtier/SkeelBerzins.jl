@@ -33,6 +33,9 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
         interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2 + Nr_tmp], pb.ξ[1], pb.singular, pb.m)
         cl, fl, sl  = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
+        if pb.Nr !== nothing
+            @views sl = pb.coupling_macro(pb.xmesh[1], t, interpolant, u[pb.npde+1 : pb.npde + Nr_tmp])
+        end
     else
         @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1 : pb.npde], pb.xmesh[end], u[end - Nr_tmp - pb.npde+1 : end - Nr_tmp], t)
 
@@ -87,24 +90,23 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Interior meshpoints of the domain
     for i ∈ 2:pb.Nx-1
 
-        # review the indexing here
         idx_u   = 1 + (i-1)*pb.npde + cpt_marker*Nr_tmp
         if pb.Nr !== nothing
             idx_uP1 = pb.markers[i] ? idx_u + Nr_tmp + pb.npde : idx_u + pb.npde
         else
-            idx_uP1 = idx_u + Nr_tmp + pb.npde
+            idx_uP1 = idx_u + pb.npde
         end
 
         if pb.npde==1
             interpolant, d_interpolant = interpolation(pb.xmesh[i], u[idx_u], pb.xmesh[i+1], u[idx_uP1], pb.ξ[i], pb.singular, pb.m)
             cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
-            if pb.Nr !== nothing
+            if pb.Nr !== nothing && pb.markers[i]
                 @views sr = pb.coupling_macro(pb.xmesh[i], t, interpolant, u[idx_u+1 : idx_uP1-1])
             end
         else
             @views interpolation!(interpolant, d_interpolant, pb.xmesh[i], u[idx_u : idx_u + pb.npde - 1], pb.xmesh[i+1], u[idx_uP1 : idx_uP1 + pb.npde - 1], pb.ξ[i], pb.singular, pb.m, pb.npde)
             @views cr, fr, sr = pb.pdefunction(pb.xmesh[i], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
-            if pb.Nr !== nothing
+            if pb.Nr !== nothing && pb.markers[i]
                 @views sr = pb.coupling_macro(pb.xmesh[i], t, SVector{npde}(interpolant), u[idx_u+1 : idx_uP1-1])
             end
         end
@@ -192,25 +194,106 @@ In the case where the mass matrix is identity, we solve a system of ODEs.
 """
 function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
 
-    if pb.Nr !== nothing 
-        ## to modify
+    inival = pb.inival
 
-        flag_DAE = true
+    if pb.Nr !== nothing
+        n_total = pb.npde*pb.Nx + pb.Nx_marked*pb.Nr
+        Nr_tmp = pb.Nr
 
-        # M = Diagonal(ones(pb.Nx*(pb.Nr+1)))
-        # M = Diagonal(ones(pb.Nx*(pb.npde + pb.Nr)))
-        M = Diagonal(ones(pb.npde*pb.Nx + pb.Nx_marked*pb.Nr))
-        M[1,1] = 0
-        M[end-pb.Nr,end-pb.Nr] = 0
-        M[end-pb.Nr-1,end-pb.Nr-1] = 0
+        # Initialize the mass matrix M
+        M = ones(n_total)
+        flag_DAE = false
 
-        return M, flag_DAE
+        if pb.npde==1
+            pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1], pb.xmesh[end], inival[end - Nr_tmp], pb.tspan[1])
+
+            interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1], pb.xmesh[2], inival[2 + Nr_tmp], pb.ξ[1], pb.singular, pb.m)
+            c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], interpolant, d_interpolant)
+        else
+            @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1 : pb.npde], pb.xmesh[end], inival[end - Nr_tmp - pb.npde+1 : end - Nr_tmp], pb.tspan[1])
+
+            @views interpolation!(pb.interpolant, pb.d_interpolant, pb.xmesh[1], inival[1 : pb.npde], pb.xmesh[2], inival[pb.npde+1 + Nr_tmp : 2*pb.npde + Nr_tmp], pb.ξ[1], pb.singular, pb.m, pb.npde)
+            @views c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], SVector{npde}(pb.interpolant), SVector{npde}(pb.d_interpolant))
+        end
+
+        # assume here that npde_micro=1 and c_micro≠0
+        pl_micro, ql_micro, pr_micro, qr_micro = pb.bdfunction_micro(pb.rmesh[1], inival[pb.npde+1], pb.rmesh[end], inival[pb.npde+Nr_tmp], pb.tspan[1])
+
+        # interpolant_micro, d_interpolant_micro = interpolation(pb.rmesh[1], inival[pb.npde+1], pb.rmesh[2], inival[pb.npde+2], pb.ξ[1], pb.singular, pb.m)
+        # c_micro, f_micro, s_micro = pb.pdefunction_micro(pb.ξ[1], pb.tspan[1], interpolant_micro, d_interpolant_micro)
+
+        for j ∈ 1:pb.npde
+            if ql[j] == 0 && !pb.singular # For the left boundary, Dirichlet BC(s) leads to a DAE (ignoring singular case)
+                M[j] = 0
+                flag_DAE = true
+            end
+        end
+
+        if pb.markers[1]
+            if ql_micro == 0 && !pb.singular_micro
+                M[pb.npde+1] = 0
+                flag_DAE = true
+            end
+
+            if qr_micro == 0
+                M[pb.npde+Nr_tmp] = 0
+                flag_DAE = true
+            end
+        end
+
+        i = pb.npde + pb.Nr + 1
+        for idx_xmesh ∈ 2:pb.Nx-1
+
+            for j ∈ 1:pb.npde
+                if c[j] == 0 # elliptic equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
+                    M[i] = 0
+                    flag_DAE = true
+                end
+                i += 1
+            end
+            
+            if pb.markers[idx_xmesh]
+                if ql_micro == 0 && !pb.singular_micro
+                    M[i] = 0
+                    flag_DAE = true
+                end
+                
+                i += Nr_tmp - 1 # assume here that c_micro ≠ 0
+
+                if qr_micro == 0
+                    M[i] = 0
+                    flag_DAE = true
+                end
+                i += 1
+            end
+        end
+
+        for j ∈ 1:pb.npde
+            if qr[j] == 0  # For the right boundary, Dirichlet BC(s) leads to a DAE
+                M[i] = 0
+                flag_DAE = true
+            end
+            i += 1
+        end
+        
+        if pb.markers[end]
+            if ql_micro == 0 && !pb.singular_micro
+                M[i] = 0
+                flag_DAE = true
+                i += Nr_tmp - 1
+            end
+    
+            if qr_micro == 0
+                M[i] = 0
+                flag_DAE = true
+            end
+        end
+
+        return Diagonal(M), flag_DAE
     else
         # Initialize the mass matrix M
         M = ones(pb.npde, pb.Nx)
         flag_DAE = false
-
-        inival = pb.inival
 
         if pb.npde==1
             pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1], pb.xmesh[end], inival[end], pb.tspan[1])

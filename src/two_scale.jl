@@ -17,7 +17,11 @@ function two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, idx_micro)
 
 
     pl, ql, pr, qr = bdfun(mesh[1], u[idx_u + pb.npde], mesh[end], u[idx_uP1 - 1], t)
-    @views pr = coupling_micro(pb.xmesh[idx_micro], t, u[idx_u:idx_u+pb.npde-1], u[idx_u+pb.npde : idx_uP1-1])
+    if pb.npde == 1
+        @views pr = coupling_micro(pb.xmesh[idx_micro], t, u[idx_u], u[idx_u+pb.npde : idx_uP1-1])
+    else
+        @views pr = coupling_micro(pb.xmesh[idx_micro], t, u[idx_u:idx_u+pb.npde-1], u[idx_u+pb.npde : idx_uP1-1])
+    end
 
     interpolant, d_interpolant = interpolation(mesh[1], u[idx_u + pb.npde], mesh[2], u[idx_u + pb.npde + 1], ξ[1], singular, m)
     cl, fl, sl  = pdefun(ξ[1], t, interpolant, d_interpolant)

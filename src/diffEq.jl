@@ -57,28 +57,25 @@ function Base.reshape(sol::AbstractDiffEqArray, pb::ProblemDefinition)
         total = pb.Nx*pb.npde + pb.Nx_marked*pb.Nr
         index_macro = zeros(Bool,(pb.npde, total))
         index_micro = zeros(Bool,(pb.Nx_marked, total))
+
         for j=1:pb.npde
             k    = j
-            tmp  = 1
-            cpt1 = 1
-            while (k < total) 
+            for i ∈ 1:pb.Nx
                 index_macro[j,k] = true
                 
-                if pb.markers[tmp]
+                if pb.markers[i]
                     k += pb.npde + pb.Nr
                 else
                     k += pb.npde
                 end
-                tmp += 1
             end
             push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][index_macro[j,:]] for i=1:length(sol.u)],sol.t))
         end
+
         cpt_marker = 1
-        k=pb.npde+1
-        tmp=1
-        while (k < total) 
-            if pb.markers[tmp]
-                # idx = pb.npde + (k-1)*pb.npde + cpt_marker*pb.Nr
+        k          = pb.npde+1
+        for idx ∈ 1:pb.Nx
+            if pb.markers[idx]
                 index_micro[cpt_marker, k:k+pb.Nr-1] .= true
 
                 push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][index_micro[cpt_marker,:]] for i=1:length(sol.u)],sol.t))
@@ -87,12 +84,9 @@ function Base.reshape(sol::AbstractDiffEqArray, pb::ProblemDefinition)
                 k += pb.npde + pb.Nr
             else
                 k += pb.npde
-            end 
-            tmp += 1   
+            end
         end
-        # for j=# pb.npde+1:pb.Nr+pb.npde:pb.Nx*(pb.npde+pb.Nr)
-            # push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][j:j+pb.Nr-1] for i=1:length(sol.u)],sol.t))
-        # end
+
         solutions
     end
 end

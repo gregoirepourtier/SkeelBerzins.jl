@@ -42,10 +42,11 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 
     inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
 
-    # display(inival)
-
     Nr           = nothing
     inival_micro = nothing
+    if markers === nothing
+        markers = ones(Bool,Nx)
+    end
     if mr !== nothing
         Nr, singular_micro, α_micro, β_micro, γ_micro, npde_micro = init_problem(mr, rmesh, icfun_micro)
         inival_micro = icfun_micro.(rmesh)
@@ -74,7 +75,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 
     pb.Nr             = Nr
     if mr !== nothing
-        pb.npde_micro     = npde_micro # only considered for npde_micro=1
+        pb.npde_micro     = npde_micro # only considered for npde_micro=1 for the moment
         pb.rmesh          = rmesh
         pb.singular_micro = singular_micro
         pb.mr             = mr
