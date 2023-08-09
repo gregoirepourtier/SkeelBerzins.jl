@@ -211,7 +211,7 @@ Mutable structure containing all the keyword arguments for the solver [`pdepe`](
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct Params
+Base.@kwdef mutable struct Params{Tv <: Number}
 
     """
     Choice of the time discretization either use `:euler` for internal implicit Euler method or `:DiffEq` for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
@@ -222,7 +222,7 @@ Base.@kwdef mutable struct Params
     Defines a time step (either pass a `Float64` or a `Vector`) when using the implicit Euler method. 
     When set to `tstep=Inf`, it solves the stationary version of the problem.
     """
-    tstep::Union{Float64,Vector{Float64}} = 1e-3
+    tstep::Union{Tv,Vector{Tv}} = 1e-3
 
     """
     Flag, returns with the solution, a list of 1d-array with the history from the newton solver.
@@ -237,7 +237,7 @@ Base.@kwdef mutable struct Params
     """
     Choice of the solver for the LSE in the newton method, see [`LinearSolve.jl`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/).
     """
-    linSolver::Union{LinearSolve.SciMLLinearSolveAlgorithm, Nothing} = nothing
+    linSolver::LinearSolve.SciMLLinearSolveAlgorithm = KLUFactorization()
 
     """
     Maximum number of iterations for the Newton solver.
@@ -254,6 +254,11 @@ Base.@kwdef mutable struct Params
     Returns the data of the PDE problem
     """
     data::Bool = false
+
+    # """
+    # Markers defining where the species are defined
+    # """
+    # markers_macro::Union{Vector{Bool}, Matrix{Bool}, Nothing}= nothing
 end
 
 
@@ -617,7 +622,7 @@ end
 
 
 
-function init_problem(m, mesh, icfun::T1) where {T1}
+function init_problem_macro(m, mesh, icfun::T1) where {T1}
 
     # Check if the paramater m is valid
     @assert m==0 || m==1 || m==2 "Parameter m invalid"
@@ -640,13 +645,36 @@ function init_problem(m, mesh, icfun::T1) where {T1}
     return N, singular, α, β, γ, npde
 end
 
+function init_problem_micro(m, xmesh, rmesh, icfun::T1) where {T1}
+
+    # Check if the paramater m is valid
+    @assert m==0 || m==1 || m==2 "Parameter m invalid"
+    # Check conformity of the mesh with respect to the given symmetry
+    @assert m==0 || m>0 && rmesh[1]≥0 "Non-conforming mesh"
+
+    # Size of the space discretization
+    N = length(rmesh)
+
+    # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
+    singular = m≥1 && rmesh[1]==0
+
+    α = @view rmesh[1:end-1]
+    β = @view rmesh[2:end]
+    γ = (α .+ β) ./ 2
+
+    # Number of unknows in the PDE problem
+    npde = length(icfun(xmesh[1],rmesh[1]))
+
+    return N, singular, α, β, γ, npde
+end
 
 function init_inival(inival1, inival2, nx, nr, npde_x, markers, nx_marked, Tv)
 
     n = npde_x*nx + nx_marked*nr
     inival = zeros(Tv,n)
 
-    i = 1
+    i           = 1
+    cpt_markers = 1
     for idx_xmesh ∈ 1:nx
         idx_local = (idx_xmesh-1)*npde_x + 1
         inival[i:i+npde_x-1] = inival1[idx_local:idx_local+npde_x-1]
@@ -654,10 +682,11 @@ function init_inival(inival1, inival2, nx, nr, npde_x, markers, nx_marked, Tv)
         if markers[idx_xmesh]
             cpt_nr = 1
             for j = i+npde_x:i+npde_x+nr-1
-                inival[j] = inival2[cpt_nr]
+                inival[j] = inival2[cpt_nr,cpt_markers]
                 cpt_nr += 1
             end
             i += npde_x + nr
+            cpt_markers += 1
         else
             i += npde_x
         end

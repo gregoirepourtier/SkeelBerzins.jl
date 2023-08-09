@@ -34,7 +34,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
                                                                                                                             coupling_micro::T8 = nothing,
                                                                                                                             markers            = nothing) where {T1,T2,T3,T4,T5,T6,T7,T8}
 
-    Nx, singular, α, β, γ, npde = init_problem(m, xmesh, icfun)
+    Nx, singular, α, β, γ, npde = init_problem_macro(m, xmesh, icfun)
 
     Tv = eltype(xmesh)
     Tm = eltype(tspan)
@@ -42,14 +42,15 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 
     inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
 
-    Nr           = nothing
-    inival_micro = nothing
     if markers === nothing
         markers = ones(Bool,Nx)
     end
+
+    Nr           = nothing
+    inival_micro = nothing
     if mr !== nothing
-        Nr, singular_micro, α_micro, β_micro, γ_micro, npde_micro = init_problem(mr, rmesh, icfun_micro)
-        inival_micro = icfun_micro.(rmesh)
+        Nr, singular_micro, α_micro, β_micro, γ_micro, npde_micro = init_problem_micro(mr, xmesh, rmesh, icfun_micro)
+        inival_micro = [icfun_micro(i,j) for j in rmesh, i in xmesh][:,markers]
         xmesh_marked = xmesh[markers]
         nx_marked = length(xmesh_marked)
     end
