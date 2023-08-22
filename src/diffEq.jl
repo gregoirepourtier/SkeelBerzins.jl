@@ -63,7 +63,7 @@ function Base.reshape(sol::AbstractDiffEqArray, pb::ProblemDefinition)
             for i ∈ 1:pb.Nx
                 index_macro[j,k] = true
                 
-                if pb.markers[i]
+                if pb.markers_micro[i]
                     k += pb.npde + pb.Nr
                 else
                     k += pb.npde
@@ -75,7 +75,7 @@ function Base.reshape(sol::AbstractDiffEqArray, pb::ProblemDefinition)
         cpt_marker = 1
         k          = pb.npde+1
         for idx ∈ 1:pb.Nx
-            if pb.markers[idx]
+            if pb.markers_micro[idx]
                 index_micro[cpt_marker, k:k+pb.Nr-1] .= true
 
                 push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][index_micro[cpt_marker,:]] for i=1:length(sol.u)],sol.t))
