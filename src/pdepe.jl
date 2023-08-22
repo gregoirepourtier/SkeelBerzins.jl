@@ -32,7 +32,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
                                                                                                                             bdfun_micro::T6    = nothing,
                                                                                                                             coupling_macro::T7 = nothing,
                                                                                                                             coupling_micro::T8 = nothing,
-                                                                                                                            markers            = nothing) where {T1,T2,T3,T4,T5,T6,T7,T8}
+                                                                                                                            markers_micro      = nothing) where {T1,T2,T3,T4,T5,T6,T7,T8}
 
     Nx, singular, α, β, γ, npde = init_problem_macro(m, xmesh, icfun)
 
@@ -49,16 +49,16 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
     Nr           = nothing
     inival_micro = nothing
     if mr !== nothing
-        if markers === nothing
-            markers = ones(Bool,Nx)
+        if markers_micro === nothing
+            markers_micro = ones(Bool,Nx)
         end
         Nr, singular_micro, α_micro, β_micro, γ_micro, npde_micro = init_problem_micro(mr, xmesh, rmesh, icfun_micro)
-        inival_micro = [icfun_micro(i,j) for j in rmesh, i in xmesh][:,markers]
-        xmesh_marked = xmesh[markers]
+        inival_micro = [icfun_micro(i,j) for j in rmesh, i in xmesh][:,markers_micro]
+        xmesh_marked = xmesh[markers_micro]
         nx_marked = length(xmesh_marked)
     end
 
-    inival = Nr === nothing ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers, nx_marked, Tv)
+    inival = Nr === nothing ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, Tv)
     
 
     pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7, T8}()
@@ -96,7 +96,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 
         pb.ξ_micro, pb.ζ_micro = init_quadrature_pts(mr, α_micro, β_micro, γ_micro, singular_micro)
 
-        pb.markers      = markers
+        pb.markers_micro      = markers_micro
         pb.Nx_marked    = nx_marked
         pb.xmesh_marked = xmesh_marked
     end

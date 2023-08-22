@@ -199,7 +199,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     d_interpolant::Vector{Tv}
 
     markers_macro::Union{Vector{Bool},Matrix{Bool}}
-    markers::Vector{Bool}
+    markers_micro::Vector{Bool}
     
     ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro} = new()
 end

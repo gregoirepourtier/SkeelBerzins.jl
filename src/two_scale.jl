@@ -1,5 +1,7 @@
+# Assemble the micro-scale equations
 
-
+"""
+"""
 function two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, idx_micro)
 
     N        = pb.Nr

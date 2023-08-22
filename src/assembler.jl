@@ -33,7 +33,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
         interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2 + Nr_tmp], pb.ξ[1], pb.singular, pb.m)
         cl, fl, sl  = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
-        if pb.Nr !== nothing && pb.markers[1]
+        if pb.Nr !== nothing && pb.markers_micro[1]
             @views sl = pb.coupling_macro(pb.xmesh[1], t, interpolant, u[pb.npde+1 : pb.npde + Nr_tmp])
         end
     else
@@ -48,7 +48,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         end
         @views interpolation!(interpolant, d_interpolant, pb.xmesh[1], u[1 : pb.npde], pb.xmesh[2], u[pb.npde+1 + Nr_tmp : 2*pb.npde + Nr_tmp], pb.ξ[1], pb.singular, pb.m, pb.npde)
         @views cl, fl, sl  = pb.pdefunction(pb.xmesh[1], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
-        if pb.Nr !== nothing && pb.markers[1]
+        if pb.Nr !== nothing && pb.markers_micro[1]
             @views sl = pb.coupling_macro(pb.xmesh[1], t, SVector{npde}(interpolant), u[pb.npde+1 : pb.npde + Nr_tmp])
         end
     end
@@ -62,7 +62,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
     cpt_marker = 0
 
-    if (pb.Nr !== nothing) && pb.markers[1]
+    if (pb.Nr !== nothing) && pb.markers_micro[1]
         idx_u   = 1
         idx_uP1 = pb.npde + Nr_tmp + 1
 
@@ -76,7 +76,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
         idx_u   = 1 + (i-1)*pb.npde + cpt_marker*Nr_tmp
         if pb.Nr !== nothing
-            idx_uP1 = pb.markers[i] ? idx_u + Nr_tmp + pb.npde : idx_u + pb.npde
+            idx_uP1 = pb.markers_micro[i] ? idx_u + Nr_tmp + pb.npde : idx_u + pb.npde
         else
             idx_uP1 = idx_u + pb.npde
         end
@@ -84,13 +84,13 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         if pb.npde==1
             interpolant, d_interpolant = interpolation(pb.xmesh[i], u[idx_u], pb.xmesh[i+1], u[idx_uP1], pb.ξ[i], pb.singular, pb.m)
             cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
-            if pb.Nr !== nothing && pb.markers[i]
+            if pb.Nr !== nothing && pb.markers_micro[i]
                 @views sr = pb.coupling_macro(pb.xmesh[i], t, interpolant, u[idx_u+1 : idx_uP1-1])
             end
         else
             @views interpolation!(interpolant, d_interpolant, pb.xmesh[i], u[idx_u : idx_u + pb.npde - 1], pb.xmesh[i+1], u[idx_uP1 : idx_uP1 + pb.npde - 1], pb.ξ[i], pb.singular, pb.m, pb.npde)
             @views cr, fr, sr = pb.pdefunction(pb.xmesh[i], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
-            if pb.Nr !== nothing && pb.markers[i]
+            if pb.Nr !== nothing && pb.markers_micro[i]
                 @views sr = pb.coupling_macro(pb.xmesh[i], t, SVector{npde}(interpolant), u[idx_u+1 : idx_uP1-1])
             end
         end
@@ -98,9 +98,9 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         frac1 = (pb.ζ[i]^(pb.m+1) - pb.xmesh[i]^(pb.m+1))/(pb.m+1)
         frac2 = (pb.xmesh[i]^(pb.m+1) - pb.ζ[i-1]^(pb.m+1))/(pb.m+1)
         
-        @views assemble_local!(du,u,i,idx_u,pb,cl,fl,sl,cr,fr,sr,frac1,frac2,pr,qr,type_check_c)
+        @views assemble_local!(du,u,i,idx_u,pb,cl,fl,sl,cr,fr,sr,frac1,frac2,pl,ql,pr,qr,type_check_c)
 
-        if (pb.Nr !== nothing) && pb.markers[i]
+        if (pb.Nr !== nothing) && pb.markers_micro[i]
             two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, i)
             cpt_marker += 1
         end
@@ -117,12 +117,8 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     
     
     @views assemble_right_bd!(du,u,pb.Nx,idx_last,pb,cl,fl,sl,pr,qr,frac,type_check_c)
-    
-    
-    # du[end] = u[end] # du[..] .= 0 --> other option and mass matrix to 1
-    
 
-    if (pb.Nr !== nothing) && pb.markers[end]
+    if (pb.Nr !== nothing) && pb.markers_micro[end]
         idx_u   = idx_last
         idx_uP1 = idx_last + Nr_tmp + pb.npde # doesn't actually exist
 
@@ -182,7 +178,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
             end
         end
 
-        if pb.markers[1]
+        if pb.markers_micro[1]
             if ql_micro == 0 && !pb.singular_micro
                 M[pb.npde+1] = 0
                 flag_DAE = true
@@ -205,7 +201,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
                 i += 1
             end
             
-            if pb.markers[idx_xmesh]
+            if pb.markers_micro[idx_xmesh]
                 if ql_micro == 0 && !pb.singular_micro
                     M[i] = 0
                     flag_DAE = true
@@ -229,7 +225,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
             i += 1
         end
         
-        if pb.markers[end]
+        if pb.markers_micro[end]
             if ql_micro == 0 && !pb.singular_micro
                 M[i] = 0
                 flag_DAE = true
