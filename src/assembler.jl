@@ -58,25 +58,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Left boundary of the domain
     frac = (pb.ζ[1]^(pb.m+1) - pb.xmesh[1]^(pb.m+1))/(pb.m+1)
 
-    if pb.singular # ignores the given boundary condition to enforce the symmetry condition
-        for i ∈ 1:pb.npde
-            if cl[i] ≠ 0
-                du[i] = ((pb.m+1)*fl[i]/pb.ξ[1] + sl[i]) / cl[i]
-            else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i] = ((pb.m+1)*fl[i]/pb.ξ[1] + sl[i])
-            end
-        end
-    else # Regular Case
-        for i ∈ 1:pb.npde
-            if ql[i] ≠ 0 && cl[i] !== zero(type_check_c)
-                du[i] = (pl[i] + ql[i]/pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m)*fl[i] + frac*sl[i])) / (ql[i]/(pb.xmesh[1]^(pb.m))*frac*cl[i])
-            elseif ql[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i] = (pl[i] + ql[i]/pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m)*fl[i] + frac*sl[i]))
-            else # Dirichlet boundary conditions
-                du[i] = pl[i]
-            end
-        end
-    end
+    @views assemble_left_bd!(du,u,1,1,pb,cl,fl,sl,pl,ql,frac,type_check_c)
 
     cpt_marker = 0
 
@@ -116,23 +98,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         frac1 = (pb.ζ[i]^(pb.m+1) - pb.xmesh[i]^(pb.m+1))/(pb.m+1)
         frac2 = (pb.xmesh[i]^(pb.m+1) - pb.ζ[i-1]^(pb.m+1))/(pb.m+1)
         
-        if pb.singular
-            for j ∈ 1:pb.npde
-                if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j + idx_u - 1] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j])
-                else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j + idx_u - 1] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j])
-                end
-            end
-        else # Regular Case
-            for j ∈ 1:pb.npde
-                if cl[j] !== zero(type_check_c) || cr[j] !== zero(type_check_c)
-                    du[j + idx_u - 1] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j]) # j + (idx_u-1)*pb.npde
-                else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j + idx_u - 1] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j])
-                end
-            end
-        end
+        @views assemble_local!(du,u,i,idx_u,pb,cl,fl,sl,cr,fr,sr,frac1,frac2,pr,qr,type_check_c)
 
         if (pb.Nr !== nothing) && pb.markers[i]
             two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, i)
@@ -148,28 +114,13 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     frac = (pb.xmesh[end]^(pb.m+1) - pb.ζ[end]^(pb.m+1))/(pb.m+1)
 
     idx_last =  1 + (pb.Nx-1)*pb.npde + cpt_marker*Nr_tmp
-               
-    if pb.singular
-        for i ∈ 1:pb.npde
-            if qr[i] ≠ 0 && cl[i] ≠ 0
-                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i])) / (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i]) # i + (idx_last-1)*pb.npde
-            elseif qr[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i]))
-            else
-                du[i + idx_last - 1] = pr[i]
-            end
-        end
-    else # Regular Case
-        for i ∈ 1:pb.npde
-            if qr[i] ≠ 0 && cl[i] !== zero(type_check_c)
-                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ξ[end]^pb.m *fl[i] - frac*sl[i])) / (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i])
-            elseif qr[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i + idx_last - 1] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ξ[end]^pb.m *fl[i] - frac*sl[i]))
-            else
-                du[i + idx_last - 1] = pr[i]
-            end
-        end
-    end
+    
+    
+    @views assemble_right_bd!(du,u,pb.Nx,idx_last,pb,cl,fl,sl,pr,qr,frac,type_check_c)
+    
+    
+    # du[end] = u[end] # du[..] .= 0 --> other option and mass matrix to 1
+    
 
     if (pb.Nr !== nothing) && pb.markers[end]
         idx_u   = idx_last
@@ -323,6 +274,16 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
             if qr[i] == 0  # For the right boundary, Dirichlet BC(s) leads to a DAE
                 M[i,end] = 0
                 flag_DAE = true
+            end
+        end
+
+        for i in 1:pb.Nx
+            for j in 1:pb.npde
+                if !pb.markers_macro[i,j]
+                    # println("hi")
+                    M[j,i] = 0
+                    flag_DAE = true
+                end
             end
         end
 

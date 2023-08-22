@@ -198,6 +198,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     interpolant::Vector{Tv}
     d_interpolant::Vector{Tv}
 
+    markers_macro::Union{Vector{Bool},Matrix{Bool}}
     markers::Vector{Bool}
     
     ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro}() where {T,Tv,Ti,Tm,pdeFunction,pdeFunction_micro,icFunction,icFunction_micro,bdFunction,bdFunction_micro,Coupling_macro,Coupling_micro} = new()
@@ -255,10 +256,10 @@ Base.@kwdef mutable struct Params{Tv <: Number}
     """
     data::Bool = false
 
-    # """
-    # Markers defining where the species are defined
-    # """
-    # markers_macro::Union{Vector{Bool}, Matrix{Bool}, Nothing}= nothing
+    """
+    Markers defining where the species are defined (on normal discretization or macro-scale)
+    """
+    markers_macro::Union{Vector{Bool}, Matrix{Bool}, Nothing} = nothing
 end
 
 

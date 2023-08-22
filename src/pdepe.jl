@@ -40,15 +40,18 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
     Tm = eltype(tspan)
     Ti = eltype(npde)
 
-    inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
-
-    if markers === nothing
-        markers = ones(Bool,Nx)
+    if params.markers_macro === nothing # For npde = 1 for the moment
+        params.markers_macro = ones(Bool,Nx,npde)
     end
+
+    inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
 
     Nr           = nothing
     inival_micro = nothing
     if mr !== nothing
+        if markers === nothing
+            markers = ones(Bool,Nx)
+        end
         Nr, singular_micro, α_micro, β_micro, γ_micro, npde_micro = init_problem_micro(mr, xmesh, rmesh, icfun_micro)
         inival_micro = [icfun_micro(i,j) for j in rmesh, i in xmesh][:,markers]
         xmesh_marked = xmesh[markers]
@@ -56,6 +59,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
     end
 
     inival = Nr === nothing ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers, nx_marked, Tv)
+    
 
     pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7, T8}()
 
@@ -73,6 +77,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 
     pb.interpolant   = zeros(Tv,npde)
     pb.d_interpolant = zeros(Tv,npde)
+
+    pb.markers_macro = params.markers_macro
 
     pb.Nr             = Nr
     if mr !== nothing

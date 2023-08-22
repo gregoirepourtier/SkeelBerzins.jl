@@ -21,6 +21,8 @@ include("utils.jl")
 export Params
 export pdeval
 
+include("bd_assembler.jl")
+include("local_assembler.jl")
 include("assembler.jl")
 
 include("diffEq.jl")
