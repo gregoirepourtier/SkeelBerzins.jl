@@ -2,7 +2,7 @@
 
 """
 """
-function assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, frac1, frac2, pl, ql, pr, qr, type_check_c)
+function assemble_local!(du::T8, u::T9, i, idx_u, pb::ProblemDefinition{npde}, cl::T1, fl::T2, sl::T3, cr::T4, fr::T5, sr::T6, frac1, frac2, pl, ql, pr, qr, type_check_c::T7) where {T1,T2,T3,T4,T5,T6,T7,npde,T8,T9}
     if pb.singular
         for j ∈ 1:pb.npde
             if !pb.markers_macro[i-1,j] && pb.markers_macro[i,j]

@@ -40,13 +40,13 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
     Tm = eltype(tspan)
     Ti = eltype(npde)
 
-    if params.markers_macro === nothing # For npde = 1 for the moment
+    if params.markers_macro === nothing
         params.markers_macro = ones(Bool,Nx,npde)
     end
 
     inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
 
-    Nr           = nothing
+    Nr           = 0
     inival_micro = nothing
     if mr !== nothing
         if markers_micro === nothing
@@ -58,7 +58,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
         nx_marked = length(xmesh_marked)
     end
 
-    inival = Nr === nothing ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, Tv)
+    @assert Nr==0 && mr===nothing || Nr > 0 "Number of meshpoint for the micro equations insufficient"
+
+    inival = Nr == 0 ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, Tv)
     
 
     pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T4, T2, T5, T3, T6, T7, T8}()
@@ -140,10 +142,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
         du0    = copy(inival)
 	    pb.jac = Tv.(Symbolics.jacobian_sparsity((du,u)->assemble!(du,u,pb,0.0),du0,inival))
     end
-    
-    # tmp = 14
-    # display(pb.jac[tmp:tmp+13,tmp:tmp+13])
 
+    
     # Solve via implicit Euler method or an ODE/DAE solver of DifferentialEquations.jl
     if params.solver == :euler # implicit Euler method
 

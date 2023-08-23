@@ -14,7 +14,7 @@ from the identity matrix or as a simple [system of ODEs](https://docs.sciml.ai/D
 Input argument:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function DifferentialEquations.ODEFunction(pb::ProblemDefinition)
+function DifferentialEquations.ODEFunction(pb::ProblemDefinition{npde}) where {npde}
     massMatrix, flag_DAE = mass_matrix(pb)
     if flag_DAE
         DifferentialEquations.ODEFunction(assemble! ; jac_prototype=pb.jac, mass_matrix=massMatrix)
@@ -34,7 +34,7 @@ Input arguments:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 - `callback`: (optional) see [callback](https://docs.sciml.ai/DiffEqDocs/stable/features/callback_functions/).
 """
-function DifferentialEquations.ODEProblem(pb::ProblemDefinition)
+function DifferentialEquations.ODEProblem(pb::ProblemDefinition{npde}) where {npde}
     odefunction=DifferentialEquations.ODEFunction(pb)
     DifferentialEquations.ODEProblem(odefunction,pb.inival,pb.tspan,pb)
 end
@@ -50,7 +50,7 @@ Indeed since in the spatial discretization, we flattened the problem, the soluti
 So by reshaping the solution, we get a solution organised by unknows.
 """
 function Base.reshape(sol::AbstractDiffEqArray, pb::ProblemDefinition)
-    if pb.Nr === nothing
+    if pb.Nr == 0
         RecursiveArrayTools.DiffEqArray([reshape(sol.u[i],(pb.npde,pb.Nx)) for i=1:length(sol.u)] ,sol.t)
     else
         solutions = RecursiveArrayTools.DiffEqArray[]

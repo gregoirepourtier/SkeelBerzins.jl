@@ -118,7 +118,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     Nx::Ti
 
-    Nr::Union{Ti,Nothing}
+    Nr::Ti
 
     Nx_marked::Ti
 

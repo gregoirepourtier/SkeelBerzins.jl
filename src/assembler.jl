@@ -20,24 +20,18 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
     type_tmp = eltype(u[1])
 
-    if pb.Nr === nothing
-        Nr_tmp = 0
-    else
-        Nr_tmp = pb.Nr
-    end
-
 
     # Evaluate the boundary conditions of the problem and interpolate u and du/dx for the first interval of the discretization
     if pb.npde==1
-        pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1], pb.xmesh[end], u[end - Nr_tmp], t)
+        pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1], pb.xmesh[end], u[end - pb.Nr], t)
 
-        interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2 + Nr_tmp], pb.ξ[1], pb.singular, pb.m)
+        interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2 + pb.Nr], pb.ξ[1], pb.singular, pb.m)
         cl, fl, sl  = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
-        if pb.Nr !== nothing && pb.markers_micro[1]
-            @views sl = pb.coupling_macro(pb.xmesh[1], t, interpolant, u[pb.npde+1 : pb.npde + Nr_tmp])
+        if pb.Nr != 0 && pb.markers_micro[1]
+            @views sl = pb.coupling_macro(pb.xmesh[1], t, interpolant, u[pb.npde+1 : pb.npde + pb.Nr])
         end
     else
-        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1 : pb.npde], pb.xmesh[end], u[end - Nr_tmp - pb.npde+1 : end - Nr_tmp], t)
+        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1 : pb.npde], pb.xmesh[end], u[end - pb.Nr - pb.npde+1 : end - pb.Nr], t)
 
         if type_tmp <: AbstractFloat
             interpolant   = pb.interpolant
@@ -46,10 +40,10 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
             interpolant   = Array{type_tmp,1}(undef,pb.npde)
             d_interpolant = Array{type_tmp,1}(undef,pb.npde)
         end
-        @views interpolation!(interpolant, d_interpolant, pb.xmesh[1], u[1 : pb.npde], pb.xmesh[2], u[pb.npde+1 + Nr_tmp : 2*pb.npde + Nr_tmp], pb.ξ[1], pb.singular, pb.m, pb.npde)
+        @views interpolation!(interpolant, d_interpolant, pb.xmesh[1], u[1 : pb.npde], pb.xmesh[2], u[pb.npde+1 + pb.Nr : 2*pb.npde + pb.Nr], pb.ξ[1], pb.singular, pb.m, pb.npde)
         @views cl, fl, sl  = pb.pdefunction(pb.xmesh[1], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
-        if pb.Nr !== nothing && pb.markers_micro[1]
-            @views sl = pb.coupling_macro(pb.xmesh[1], t, SVector{npde}(interpolant), u[pb.npde+1 : pb.npde + Nr_tmp])
+        if pb.Nr != 0 && pb.markers_micro[1]
+            @views sl = pb.coupling_macro(pb.xmesh[1], t, SVector{npde}(interpolant), u[pb.npde+1 : pb.npde + pb.Nr])
         end
     end
 
@@ -62,9 +56,9 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
     cpt_marker = 0
 
-    if (pb.Nr !== nothing) && pb.markers_micro[1]
+    if (pb.Nr != 0) && pb.markers_micro[1]
         idx_u   = 1
-        idx_uP1 = pb.npde + Nr_tmp + 1
+        idx_uP1 = pb.npde + pb.Nr + 1
 
         two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, 1)
 
@@ -74,9 +68,9 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Interior meshpoints of the domain
     for i ∈ 2:pb.Nx-1
 
-        idx_u   = 1 + (i-1)*pb.npde + cpt_marker*Nr_tmp
-        if pb.Nr !== nothing
-            idx_uP1 = pb.markers_micro[i] ? idx_u + Nr_tmp + pb.npde : idx_u + pb.npde
+        idx_u   = 1 + (i-1)*pb.npde + cpt_marker*pb.Nr
+        if pb.Nr != 0
+            idx_uP1 = pb.markers_micro[i] ? idx_u + pb.Nr + pb.npde : idx_u + pb.npde
         else
             idx_uP1 = idx_u + pb.npde
         end
@@ -84,13 +78,13 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         if pb.npde==1
             interpolant, d_interpolant = interpolation(pb.xmesh[i], u[idx_u], pb.xmesh[i+1], u[idx_uP1], pb.ξ[i], pb.singular, pb.m)
             cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
-            if pb.Nr !== nothing && pb.markers_micro[i]
+            if pb.Nr != 0 && pb.markers_micro[i]
                 @views sr = pb.coupling_macro(pb.xmesh[i], t, interpolant, u[idx_u+1 : idx_uP1-1])
             end
         else
             @views interpolation!(interpolant, d_interpolant, pb.xmesh[i], u[idx_u : idx_u + pb.npde - 1], pb.xmesh[i+1], u[idx_uP1 : idx_uP1 + pb.npde - 1], pb.ξ[i], pb.singular, pb.m, pb.npde)
             @views cr, fr, sr = pb.pdefunction(pb.xmesh[i], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
-            if pb.Nr !== nothing && pb.markers_micro[i]
+            if pb.Nr != 0 && pb.markers_micro[i]
                 @views sr = pb.coupling_macro(pb.xmesh[i], t, SVector{npde}(interpolant), u[idx_u+1 : idx_uP1-1])
             end
         end
@@ -100,7 +94,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         
         @views assemble_local!(du,u,i,idx_u,pb,cl,fl,sl,cr,fr,sr,frac1,frac2,pl,ql,pr,qr,type_check_c)
 
-        if (pb.Nr !== nothing) && pb.markers_micro[i]
+        if (pb.Nr != 0) && pb.markers_micro[i]
             two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, i)
             cpt_marker += 1
         end
@@ -113,19 +107,19 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Right boundary of the domain
     frac = (pb.xmesh[end]^(pb.m+1) - pb.ζ[end]^(pb.m+1))/(pb.m+1)
 
-    idx_last =  1 + (pb.Nx-1)*pb.npde + cpt_marker*Nr_tmp
+    idx_last =  1 + (pb.Nx-1)*pb.npde + cpt_marker*pb.Nr
     
     
     @views assemble_right_bd!(du,u,pb.Nx,idx_last,pb,cl,fl,sl,pr,qr,frac,type_check_c)
 
-    if (pb.Nr !== nothing) && pb.markers_micro[end]
+    if (pb.Nr != 0) && pb.markers_micro[end]
         idx_u   = idx_last
-        idx_uP1 = idx_last + Nr_tmp + pb.npde # doesn't actually exist
+        idx_uP1 = idx_last + pb.Nr + pb.npde # doesn't actually exist
 
         two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, pb.Nx)
     end
 
-    return du
+    nothing
 end
 
 
@@ -145,28 +139,27 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
 
     inival = pb.inival
 
-    if pb.Nr !== nothing
+    if pb.Nr != 0
         n_total = pb.npde*pb.Nx + pb.Nx_marked*pb.Nr
-        Nr_tmp = pb.Nr
 
         # Initialize the mass matrix M
         M = ones(n_total)
         flag_DAE = false
 
         if pb.npde==1
-            pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1], pb.xmesh[end], inival[end - Nr_tmp], pb.tspan[1])
+            pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1], pb.xmesh[end], inival[end - pb.Nr], pb.tspan[1])
 
-            interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1], pb.xmesh[2], inival[2 + Nr_tmp], pb.ξ[1], pb.singular, pb.m)
+            interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1], pb.xmesh[2], inival[2 + pb.Nr], pb.ξ[1], pb.singular, pb.m)
             c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], interpolant, d_interpolant)
         else
-            @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1 : pb.npde], pb.xmesh[end], inival[end - Nr_tmp - pb.npde+1 : end - Nr_tmp], pb.tspan[1])
+            @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1 : pb.npde], pb.xmesh[end], inival[end - pb.Nr - pb.npde+1 : end - pb.Nr], pb.tspan[1])
 
-            @views interpolation!(pb.interpolant, pb.d_interpolant, pb.xmesh[1], inival[1 : pb.npde], pb.xmesh[2], inival[pb.npde+1 + Nr_tmp : 2*pb.npde + Nr_tmp], pb.ξ[1], pb.singular, pb.m, pb.npde)
+            @views interpolation!(pb.interpolant, pb.d_interpolant, pb.xmesh[1], inival[1 : pb.npde], pb.xmesh[2], inival[pb.npde+1 + pb.Nr : 2*pb.npde + pb.Nr], pb.ξ[1], pb.singular, pb.m, pb.npde)
             @views c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], SVector{npde}(pb.interpolant), SVector{npde}(pb.d_interpolant))
         end
 
         # assume here that npde_micro=1 and c_micro≠0
-        pl_micro, ql_micro, pr_micro, qr_micro = pb.bdfunction_micro(pb.rmesh[1], inival[pb.npde+1], pb.rmesh[end], inival[pb.npde+Nr_tmp], pb.tspan[1])
+        pl_micro, ql_micro, pr_micro, qr_micro = pb.bdfunction_micro(pb.rmesh[1], inival[pb.npde+1], pb.rmesh[end], inival[pb.npde+pb.Nr], pb.tspan[1])
 
         # interpolant_micro, d_interpolant_micro = interpolation(pb.rmesh[1], inival[pb.npde+1], pb.rmesh[2], inival[pb.npde+2], pb.ξ[1], pb.singular, pb.m)
         # c_micro, f_micro, s_micro = pb.pdefunction_micro(pb.ξ[1], pb.tspan[1], interpolant_micro, d_interpolant_micro)
@@ -185,7 +178,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
             end
 
             if qr_micro == 0
-                M[pb.npde+Nr_tmp] = 0
+                M[pb.npde+pb.Nr] = 0
                 flag_DAE = true
             end
         end
@@ -207,7 +200,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
                     flag_DAE = true
                 end
                 
-                i += Nr_tmp - 1 # assume here that c_micro ≠ 0
+                i += pb.Nr - 1 # assume here that c_micro ≠ 0
 
                 if qr_micro == 0
                     M[i] = 0
@@ -229,7 +222,7 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
             if ql_micro == 0 && !pb.singular_micro
                 M[i] = 0
                 flag_DAE = true
-                i += Nr_tmp - 1
+                i += pb.Nr - 1
             end
     
             if qr_micro == 0
@@ -271,13 +264,10 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
                 M[i,end] = 0
                 flag_DAE = true
             end
-        end
 
-        for i in 1:pb.Nx
-            for j in 1:pb.npde
-                if !pb.markers_macro[i,j]
-                    # println("hi")
-                    M[j,i] = 0
+            for j in 1:pb.Nx
+                if !pb.markers_macro[j,i]
+                    M[i,j] = 0
                     flag_DAE = true
                 end
             end
