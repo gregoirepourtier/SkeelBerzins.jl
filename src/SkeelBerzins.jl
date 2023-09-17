@@ -9,7 +9,7 @@ using RecursiveArrayTools
 using DocStringExtensions
 using Reexport
 
-@reexport using DifferentialEquations
+# @reexport using DifferentialEquations
 @reexport using LinearSolve
 @reexport using StaticArrays
 
@@ -22,7 +22,7 @@ export pdeval
 
 include("assembler.jl")
 
-include("diffEq.jl")
+# include("diffEq.jl")
 
 
 end # module

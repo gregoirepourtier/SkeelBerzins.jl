@@ -5,7 +5,6 @@ version = "0.1.5"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
-DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
@@ -14,6 +13,12 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[weakdeps]
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+
+[extensions]
+SkeelBerzinsDiffEq = "DifferentialEquations"
 
 [compat]
 BandedMatrices = "0.17"
@@ -25,3 +30,19 @@ Reexport = "1"
 SparseDiffTools = "2"
 StaticArrays = "1.5"
 julia = "1.6"
+
+[extras]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
+OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
+OptimizationPolyalgorithms = "500b13db-7e66-49ce-bda4-eed966be6282"
+SciMLSensitivity = "1ed8b502-d754-442c-8d5d-10ac956f44a1"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "SpecialFunctions", "SciMLSensitivity", "OptimizationPolyalgorithms", 
+        "OptimizationOptimJL", "Optimization", "LinearAlgebra", "DifferentialEquations", 
+        "DelimitedFiles"]
