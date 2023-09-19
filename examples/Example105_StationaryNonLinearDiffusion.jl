@@ -1,15 +1,18 @@
-# Example 108: Stationary nonlinear diffusion equation
+#=
 
-Solve the following nonlinear diffusion equation:
+
+# Example 105: Nonlinear Diffusion Equation
+
+Solve the nonlinear diffusion equation
 ```math
 -(2uu_x)_{x} = 1 \\
 u(0) = 0.1 \\
 u(1) = 0.1 \\
-```
-for ``x \in \Omega=(0,1)`` with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
+````
+for $x \in \Omega=(0,1)$ with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
+=#
 
-```
-module Example108_StationaryNonLinearDiffusion
+module Example105_StationaryNonLinearDiffusion
 
 using SkeelBerzins
 
@@ -53,16 +56,16 @@ function main()
 	params = SkeelBerzins.Params()
 	params.tstep = Inf
 
-	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
+	sol  = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
+	sol2 = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh)
 	
-
-	return sum(sol)
+	return sum(sol),sum(sol2)
 end
 
 function test()
     testval=6.025575019008793
-    main() ≈ testval
+    sol1,sol2 = main()
+    sol1 ≈ sol2 ≈ testval
 end
 
 end
-```

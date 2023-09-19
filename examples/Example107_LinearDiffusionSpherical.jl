@@ -1,14 +1,14 @@
 #=
 
 
-# Example 112: Linear Diffusion Problem in Spherical Coordinates
+# Example 107: Linear Diffusion Problem in Spherical Coordinates
 
 Solve the following problem
 ```math
 u_t = \frac{1}{x^2}(x^2 u_x)_x \\
 ```
 for $x \in \Omega=(0,1)$ with the imposed symmetry condition in $x=0$ (since use of spherical coordinates)
-and Dirichlet condition in $x=1$ using the implicit Euler method (internal method).
+and Dirichlet condition in $x=1$.
 
 We take for our problem the following initial condition:
 ```math
@@ -16,9 +16,9 @@ u(x,0) = x^2
 ```
 =#
 
-module Example112_LinearDiffusionSpherical
+module Example107_LinearDiffusionSpherical
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 using LinearAlgebra
 
 
@@ -30,7 +30,7 @@ function main()
 	T = 0.8
 
 	x_mesh = collect(range(0, L, length=Nx))
-	tspan  = (0.1, T)
+	tspan  = (0.0, T)
 
 	m = 2
 
@@ -57,11 +57,18 @@ function main()
         return pl,ql,pr,qr
     end
 
-    sol = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
+    params = SkeelBerzins.Params()
+	params.solver = :DiffEq
+
+    pb      = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
+	problem = DifferentialEquations.ODEProblem(pb)
+	sol_diffEq     = DifferentialEquations.solve(problem,Rosenbrock23())
+
+    sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
 
     exact(x,t) = x^2 + 6*t
 
-    return norm(sol.u[end] - exact.(x_mesh,T)) < 1.0e-2
+    return norm(sol_diffEq.u[end] - exact.(x_mesh,T)) < 1.0e-14 && norm(sol_euler.u[end] - exact.(x_mesh,T)) < 1.0e-2
 end
 
 

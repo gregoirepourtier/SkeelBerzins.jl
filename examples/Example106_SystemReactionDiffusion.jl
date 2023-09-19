@@ -1,6 +1,9 @@
-# Example 109: System of Reaction-Diffusion equations (DiffEq)
+#=
 
-Solve the following system of PDEs:
+
+# Example 106: Reaction-Diffusion System
+
+Solve the system of PDEs
 ```math
 \partial_t u_1 = 0.5 \partial^2_x u_1 - u_1 + u_2 = 0 \\
 \partial_t u_2 = 0.1 \partial^2_x u_2 + u_1 - u_2 = 0 \\
@@ -8,19 +11,19 @@ u_1(0,t) = 1 \\
 \partial_x u_1(1,t) = 0 \\
 \partial_x u_2(0,t) = 0 \\
 u_2(0,t) = 0
-```
-for ``x \in \Omega=(0,10)`` using the DAE solvers of the DifferentialEquations.jl package.
+````
+for $x \in \Omega=(0,10)$.
 
 We take for our problem the following initial condition:
 ```math
 u_1(x,0) = 0 \\
 u_2(x,0) = 0
 ```
+=#
 
-```
-module Example109_SystemReactionDiffusion_DiffEq
+module Example106_SystemReactionDiffusion
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 
 
 function main()
@@ -53,27 +56,35 @@ function main()
 
 	function bdfun_test(xl,ul,xr,ur,t)
 		pl = SVector(ul[1]-1.0, 0)
-		ql = SVector(0, 1)
+    	ql = SVector(0, 1)
 		pr = SVector(0, ur[2])
 		qr = SVector(1, 0)
 
 		return pl,ql,pr,qr
 	end
 
-	params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+	params_diffEq = SkeelBerzins.Params()
+	params_diffEq.solver = :DiffEq
 
-	pb = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
+	pb = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params_diffEq)
 	problem = DifferentialEquations.ODEProblem(pb)
-	sol = DifferentialEquations.solve(problem,Rosenbrock23())
+	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
 
-	return sum(sol.u[end])
+	params_euler = SkeelBerzins.Params()
+	params_euler.tstep = 1e-2
+
+	sol_euler = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params_euler)
+
+	return (sum(sol_diffEq.u[end]),sum(sol_euler.u[end]))
 end
 
 function test()
-    testval=29.035923566365785
-    main() ≈ testval
+    testval_diffEq = 29.035923566365785
+	testval_euler  = 29.034702247833415
+
+    approx_diffEq, approx_euler = main()
+
+    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 end
-```

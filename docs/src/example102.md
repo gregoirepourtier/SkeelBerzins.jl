@@ -1,46 +1,56 @@
-# Example 102: Linear Diffusion equation
+# Example 102: Nonlinear Diffusion equation
 
-Solve the following linear diffusion equation:
+Solve the following nonlinear diffusion equation:
 ```math
-u_t  = u_{xx}
+u_t  = (2uu_x)_{x}
 ```
-for ``x \in \Omega=(0,1)`` with homogeneous Neumann boundary conditions using the implicit Euler method (internal method).
+for ``x \in \Omega=(-1,1)`` with homogeneous Neumann boundary conditions.
 
-We take for our problem the following initial condition:
+We take for our problem the following initial condition (exact solution named Barenblatt solution):
 ```math
-u(x,0) = exp(-100*(x-0.25)^2)
+u(x,0.001) = \max\left(0,t^{-\alpha}\left(1-\frac{\alpha(m-1)x^2}{2mt^{2\alpha}}\right)^{\frac{1}{m-1}}\right)
 ```
+for ``m=2`` and ``\alpha = \left(m+1\right)^{-1}``.
 
 ```
-module Example102_LinearDiffusion
+module Example102_NonlinearDiffusion
 
 using SkeelBerzins
 
-
 function main()
 
-	N_x = 21
-		
-	L = 1
-	T = 1
+	Nx = 21
 
-	x_mesh = collect(range(0,L,length=N_x))
-	tspan  = (0, T)
+	L = 1
+	T = 0.01
+
+	x_mesh = collect(range(-1,L,length=Nx))
+	tspan  = (0.001,T)
 
 	m = 0
-	
-	fpeak(x)=exp(-100*(x-0.25)^2)
+
+	function barenblatt(x,t,p)
+		tx=t^(-1.0/(p+1.0))
+		xx=x*tx
+		xx=xx*xx
+		xx=1- xx*(p-1)/(2.0*p*(p+1));
+		if xx<0.0
+			xx=0.0
+		end
+		return tx*xx^(1.0/(p-1.0))
+	end
 
 	function pdefun(x,t,u,dudx)
 		c = 1
-		f = dudx 
+		f = 2*u*dudx
 		s = 0
 		
 		return c,f,s
 	end
 
+
 	function icfun(x)
-		u0 = fpeak(x)
+		u0 = barenblatt(x,0.001,2)
 		
 		return u0
 	end
@@ -55,15 +65,28 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	sol = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
-	
+	params_diffEq = SkeelBerzins.Params()
+	params_diffEq.solver = :DiffEq
 
-	return sum(sol.u[end])
+	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params_diffEq)
+	problem = DifferentialEquations.ODEProblem(pb)
+	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
+
+	params_euler = SkeelBerzins.Params()
+	params_euler.tstep = 1e-4
+
+	sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan; params=params_euler)
+
+	return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
 end
 
+
 function test()
-    testval=3.721004873950427
-    main() ≈ testval
+    testval_diffEq = 46.66666666671536
+	testval_euler  = 46.66666666678757
+	approx_diffEq, approx_euler = main()
+
+    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 

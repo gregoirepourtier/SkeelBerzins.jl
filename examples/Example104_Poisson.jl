@@ -1,7 +1,7 @@
 #= 
 
 
-# Example 107: 1D Poisson equation 
+# Example 104: 1D Poisson equation 
 
 Solve the 1D Poisson equation
 ```math
@@ -12,7 +12,7 @@ u(1)=0.1 \\
 for $x \in \Omega=(0,1)$ with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
 =#
 
-module Example107_Poisson
+module Example104_Poisson
 
 using SkeelBerzins
 

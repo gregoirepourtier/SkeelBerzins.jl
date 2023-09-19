@@ -1,86 +1,80 @@
-# Example 103: Nonlinear Diffusion equation (DiffEq)
+# Example 103: Linear Diffusion equation in cylindrical coordinates
 
-Solve the following nonlinear diffusion equation:
+Solve the following problem:
 ```math
-u_t  = (2uu_x)_{x}
+u_t = \frac{1}{x}(xu_x)_x
 ```
-for ``x \in \Omega=(-1,1)`` with homogeneous Neumann boundary conditions using the ODE solvers of the DifferentialEquations.jl package.
+for ``x \in \Omega=(0,1)`` with the imposed symmetry condition in ``x=0`` (since use of cylindrical coordinates) and Dirichlet condition in ``x=1``.
 
-We take for our problem the following initial condition (exact solution named Barenblatt solution):
+We initialize our problem with the exact solution (Bessel function and its first zero):
 ```math
-u(x,0.001) = \max\left(0,t^{-\alpha}\left(1-\frac{\alpha(m-1)x^2}{2mt^{2\alpha}}\right)^{\frac{1}{m-1}}\right)
+u(x,0) = J_0(nx)
 ```
-for ``m=2`` and ``\alpha = \left(m+1\right)^{-1}``.
+where ``n = 2.404825557695773``.
 
 ```
-module Example103_NonlinearDiffusion_DiffEq
+module Example103_LinearDiffusionCylindrical
 
 using SkeelBerzins
+using SpecialFunctions
 
 function main()
 
-	Nx = 21
+    Nx = 21
+    
+    L = 1
+    T = 1
+    
+    x_mesh = collect(range(0, L, length=Nx))
+    tspan  = (0, T)
+    
+    m = 1
 
-	L = 1
-	T = 0.01
+    function pdefun(x,t,u,dudx)
+        c = 1
+        f = dudx
+        s = 0
+        
+        return c,f,s
+    end
 
-	x_mesh = collect(range(-1,L,length=Nx))
-	tspan  = (0.001,T)
+    function icfun(x)
+        n = 2.404825557695773
+        u0 = besselj(0,n*x)
+        
+        return u0
+    end
 
-	m = 0
+    function bdfun(xl,ul,xr,ur,t)
+        n  = 2.404825557695773
+        pl = 0 # ignored by solver since m=1
+        ql = 0 # ignored by solver since m=1
+        pr = ur-besselj(0,n)*exp(-n^2*t)
+        qr = 0
 
-	function barenblatt(x,t,p)
-		tx=t^(-1.0/(p+1.0))
-		xx=x*tx
-		xx=xx*xx
-		xx=1- xx*(p-1)/(2.0*p*(p+1));
-		if xx<0.0
-			xx=0.0
-		end
-		return tx*xx^(1.0/(p-1.0))
-	end
+        return pl,ql,pr,qr
+    end
 
-	function pdefun(x,t,u,dudx)
-		c = 1
-		f = 2*u*dudx
-		s = 0
-		
-		return c,f,s
-	end
-
-
-	function icfun(x)
-		u0 = barenblatt(x,0.001,2)
-		
-		return u0
-	end
-
-
-	function bdfun(xl,ul,xr,ur,t)
-		pl = 0
-		ql = 1
-		pr = 0
-		qr = 1
-
-		return pl,ql,pr,qr
-	end
-
-	params = SkeelBerzins.Params()
+    params = SkeelBerzins.Params()
 	params.solver = :DiffEq
 
-	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
+    pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
 	problem = DifferentialEquations.ODEProblem(pb)
-	sol = DifferentialEquations.solve(problem,Rosenbrock23())
+	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
 
-	return sum(sol.u[end])
+    sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
+
+    return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
 end
 
 
 function test()
-    testval=46.66666666671536
-    main() ≈ testval
-end
+    testval_diffEq = 0.038941562421188236
+    testval_euler = 0.04010494653084508
+    approx_diffEq, approx_euler = main()
 
+    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
+end
 
 end
 ```

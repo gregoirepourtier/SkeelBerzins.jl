@@ -1,10 +1,10 @@
-# Example 101: Linear Diffusion equation (DiffEq)
+# Example 101: Linear Diffusion equation
 
 Solve the following linear diffusion equation:
 ```math
 u_t  = u_{xx}
 ```
-for ``x \in \Omega=(0,1)`` with homogeneous Neumann boundary conditions using the ODE solvers of the DifferentialEquations.jl package.
+for ``x \in \Omega=(0,1)`` with homogeneous Neumann boundary conditions.
 
 We take for our problem the following initial condition:
 ```math
@@ -12,7 +12,7 @@ u(x,0) = exp(-100*(x-0.25)^2)
 ```
 
 ```
-module Example101_LinearDiffusion_DiffEq
+module Example101_LinearDiffusion
 
 using SkeelBerzins
 
@@ -60,15 +60,19 @@ function main()
 
 	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
 	problem   = DifferentialEquations.ODEProblem(pb)
-	sol = DifferentialEquations.solve(problem,Tsit5())
-	
+	sol_diffEq = DifferentialEquations.solve(problem,Tsit5())
 
-	return sum(sol.u[end])
+	sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
+
+	return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
 end
 
 function test()
-    testval = 3.7210048739504296
-    main() ≈ testval
+    testval_diffEq = 3.720992375010752
+	testval_euler  = 3.721004873950427
+	approx_diffEq, approx_euler = main()
+
+    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 

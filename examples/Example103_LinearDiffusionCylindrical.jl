@@ -1,14 +1,14 @@
 #= 
 
 
-# Example 106: Linear Diffusion Problem in Cylindrical Coordinates
+# Example 103: Linear Diffusion Problem in Cylindrical Coordinates
 
 Solve the following problem
 ```math
 u_t = \frac{1}{x}(xu_x)_x
 ````
 for $x \in \Omega=(0,1)$ with the imposed symmetry condition in $x=0$ (since use of cylindrical coordinates)
-and Dirichle condition in $x=1$ using the implicit Euler method (internal method).
+and Dirichlet condition in $x=1$.
 
 We initialize our problem with the exact solution (Bessel function and its first zero):
 ```math
@@ -17,12 +17,10 @@ u(x,0) = J_0(nx)
 where $n = 2.404825557695773$.
 =#
 
+module Example103_LinearDiffusionCylindrical
 
-module Example106_LinearDiffusionCylindrical
-
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 using SpecialFunctions
-
 
 function main()
 
@@ -61,15 +59,25 @@ function main()
         return pl,ql,pr,qr
     end
 
-    sol = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
+    params = SkeelBerzins.Params()
+	params.solver = :DiffEq
 
-    return sum(sol.u[end])
+    pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
+	problem = DifferentialEquations.ODEProblem(pb)
+	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
+
+    sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
+
+    return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
 end
 
 
 function test()
-    testval = 0.04020183138531086
-	main() ≈ testval
+    testval_diffEq = 0.038941562421188236
+    testval_euler = 0.04010494653084508
+    approx_diffEq, approx_euler = main()
+
+    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 end

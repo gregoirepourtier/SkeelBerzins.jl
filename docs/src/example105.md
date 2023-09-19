@@ -1,73 +1,66 @@
-# Example 105: Linear Diffusion equation in cylindrical coordinates (DiffEq)
+# Example 105: Stationary nonlinear diffusion equation
 
-Solve the following problem:
+Solve the following nonlinear diffusion equation:
 ```math
-u_t = \frac{1}{x}(xu_x)_x
+-(2uu_x)_{x} = 1 \\
+u(0) = 0.1 \\
+u(1) = 0.1 \\
 ```
-for ``x \in \Omega=(0,1)`` with the imposed symmetry condition in ``x=0`` (since use of cylindrical coordinates) and Dirichlet condition in ``x=1`` using the DAE solvers of the DifferentialEquations.jl package.
-
-We initialize our problem with the exact solution (Bessel function and its first zero):
-```math
-u(x,0) = J_0(nx)
-```
-where ``n = 2.404825557695773``.
+for ``x \in \Omega=(0,1)`` with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
 
 ```
-module Example105_LinearDiffusionCylindrical_DiffEq
+module Example105_StationaryNonLinearDiffusion
 
 using SkeelBerzins
-using SpecialFunctions
+
 
 function main()
 
-    Nx = 21
-    
-    L = 1
-    T = 1
-    
-    x_mesh = collect(range(0, L, length=Nx))
-    tspan  = (0, T)
-    
-    m = 1
+	N_x = 21
+		
+	L = 1
+	T = 1
 
-    function pdefun(x,t,u,dudx)
-        c = 1
-        f = dudx
-        s = 0
-        
-        return c,f,s
-    end
+	x_mesh = collect(range(0,L,length=N_x))
+	tspan  = (0, T)
 
-    function icfun(x)
-        n = 2.404825557695773
-        u0 = besselj(0,n*x)
-        
-        return u0
-    end
+	m = 0
 
-    function bdfun(xl,ul,xr,ur,t)
-        n  = 2.404825557695773
-        pl = 0 # ignored by solver since m=1
-        ql = 0 # ignored by solver since m=1
-        pr = ur-besselj(0,n)*exp(-n^2*t)
-        qr = 0
+	function pdefun_test(x,t,u,dudx)
+		c = 1
+		f = 2*u*dudx 
+		s = 1
+		
+		return c,f,s
+	end
 
-        return pl,ql,pr,qr
-    end
+	function icfun_test(x)
+		u0 = 0.1
+		
+		return u0
+	end
 
-    params = SkeelBerzins.Params()
-    params.solver = :DiffEq
 
-    pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-    problem = DifferentialEquations.ODEProblem(pb)
-    sol = DifferentialEquations.solve(problem,Rosenbrock23())
+	function bdfun_test(xl,ul,xr,ur,t)
+		pl = ul - 0.1
+		ql = 0
+		pr = ur - 0.1
+		qr = 0
 
-    return sum(sol.u[end])
+		return pl,ql,pr,qr
+	end
+
+	params = SkeelBerzins.Params()
+	params.tstep = Inf
+
+	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
+	
+
+	return sum(sol)
 end
 
-
 function test()
-    testval = 0.03902519717606674
+    testval=6.025575019008793
     main() ≈ testval
 end
 

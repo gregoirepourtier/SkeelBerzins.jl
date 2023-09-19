@@ -5,13 +5,17 @@
 """
     pdepe(m, pdefunction, icfunction, bdfunction, xmesh, tspan ; params=nothing)
 
-Solve 1D elliptic and/or parabolic partial differential equation(s) using the spatial discretization method described in [1].
-The time discretization is either done by the implicit Euler method (internal method) or by using a ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
-For more information on how to define the different inputs to solve a problem, look at the following sections: [Problem Definition](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/problem_definition/) and [Solvers](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/solvers/).
+Solve 1D elliptic and/or parabolic partial differential equation(s) using the spatial discretization 
+method described in [1].
+The time discretization is either done by the implicit Euler method (internal method) or by using a 
+ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
+For more information on how to define the different inputs to solve a problem, look at the following sections: 
+[Problem Definition](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/problem_definition/) and 
+[Solvers](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/solvers/).
 
 Input arguments:
-- `m`: scalar refering to the symmetry of the problem. It can either take the value `m=0`, `m=1` or `m=2` representing 
-       cartesian, cylindrical or spherical coordinates respectively.
+- `m`: scalar refering to the symmetry of the problem. It can either take the value `m=0`, `m=1` or `m=2` 
+       representing cartesian, cylindrical or spherical coordinates respectively.
 - `pdefunction`: Function. Defines the PDE(s) formulation that incorporates capacity, flux and source terms.
 - `icfunction`: Function. Defines the initial condition of the system to solve (if `tstep ```\\neq``` Inf` - initial condition from the ODE/DAE problem, 
                 else if `tstep = Inf` - initial value used for the newton solver).
@@ -22,10 +26,12 @@ Input arguments:
 Keyword argument:
 - `params`: defines a [`SkeelBerzins.Params`](@ref) structure containing the keyword arguments from the solvers.
 
-Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
-or a 1D Array, depending on the chosen solver.
-Moreover, if the solution is obtained from a time dependent problem, a linear interpolation method can be use to evaluate the solution 
-at any time step within the interval ``(t_0,t_{end})`` (accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available on the solution object using the command `sol(x_eval,t,pb)`.
+Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/
+array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
+or a 1D Array, depending on the chosen solver. Moreover, if the solution is obtained from a time dependent problem, 
+a linear interpolation method can be use to evaluate the solution at any time step within the interval ``(t_0,t_{end})`` 
+(accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available 
+on the solution object using the command `sol(x_eval,t,pb)`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelBerzins.Params()) where {T1,T2,T3}
 
@@ -84,10 +90,11 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
         # Quadrature point ξ and weight ζ for m=1
         if singular
             ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
+            ζ = ((β.^2 .- α.^2) ./ (2 .*log.(β ./ α))).^(0.5)
         else # Regular case
             ξ = (β .- α) ./ log.(β ./ α)
+            ζ = (ξ .* gamma ).^(0.5)
         end
-        ζ = (ξ .* gamma ).^(0.5)
     
     # Spherical Polar Coordinates
     else m==2

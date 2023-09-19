@@ -1,67 +1,75 @@
-# Example 107: Poisson equation
+# Example 107: Linear Diffusion equation in spherical coordinates
 
-Solve the following 1D Poisson equation:
+Solve the following problem:
 ```math
--u_{xx} = 1 \\
-u(0)=0.1 \\
-u(1)=0.1 \\
+u_t = \frac{1}{x^2}(x^2 u_x)_x
 ```
-for ``x \in \Omega=(0,1)`` with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
+for ``x \in \Omega=(0,1)`` with the imposed symmetry condition in ``x=0`` (since use of spherical coordinates)
+and Dirichlet condition in ``x=1``.
+
+We take for our problem the following initial condition:
+```math
+u(x,0) = x^2
+```
 
 ```
-module Example107_Poisson
+module Example107_LinearDiffusionSpherical
 
 using SkeelBerzins
-
+using LinearAlgebra
 
 function main()
 
-	N_x = 21
-		
-	L = 1
-	T = 1
+    Nx = 21
+    
+    L = 1
+    T = 0.8
+    
+    x_mesh = collect(range(0, L, length=Nx))
+    tspan  = (0.0, T)
+    
+    m = 2
 
-	x_mesh = collect(range(0,L,length=N_x))
-	tspan  = (0, T)
+    function pdefun(x,t,u,dudx)
+        c = 1
+        f = dudx
+        s = 0
+        
+        return c,f,s
+    end
 
-	m = 0
+    function icfun(x)
+        u0 = x^2
+        
+        return u0
+    end
 
-	function pdefun_test(x,t,u,dudx)
-		c = 1
-		f = dudx 
-		s = 1
-		
-		return c,f,s
-	end
+    function bdfun(xl,ul,xr,ur,t)
+        pl = 0 # ignored by solver since m=1
+        ql = 0 # ignored by solver since m=1
+        pr = ur-(1+6*t)
+        qr = 0
+    
+        return pl,ql,pr,qr
+    end
 
-	function icfun_test(x)
-		u0 = 0.1
-		
-		return u0
-	end
+    params = SkeelBerzins.Params()
+	params.solver = :DiffEq
 
+    pb      = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
+	problem = DifferentialEquations.ODEProblem(pb)
+	sol_diffEq     = DifferentialEquations.solve(problem,Rosenbrock23())
 
-	function bdfun_test(xl,ul,xr,ur,t)
-		pl = ul - 0.1
-		ql = 0
-		pr = ur - 0.1
-		qr = 0
+    sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
 
-		return pl,ql,pr,qr
-	end
+    exact(x,t) = x^2 + 6*t
 
-
-	params = SkeelBerzins.Params()
-	params.tstep = Inf
-	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
-	
-
-	return sum(sol)
+    return norm(sol_diffEq.u[end] - exact.(x_mesh,T)) < 1.0e-14 && norm(sol_euler.u[end] - exact.(x_mesh,T)) < 1.0e-2
 end
 
+
 function test()
-    testval=3.7624999999999997
-    main() ≈ testval
+	main()
 end
 
 end
