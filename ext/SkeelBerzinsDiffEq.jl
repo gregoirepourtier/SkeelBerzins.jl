@@ -3,7 +3,11 @@ module SkeelBerzinsDiffEq
 # Enables SkeelBerzins.jl to create an ODEProblem and use the solvers
 # from DifferentialEquations.jl for solving transient problems
 
-using SkeelBerzins, DifferentialEquations
+
+using SkeelBerzins
+
+isdefined(Base, :get_extension) ? (using DifferentialEquations) : (using ..DifferentialEquations)
+
 
 
 """
