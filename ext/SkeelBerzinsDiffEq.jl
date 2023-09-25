@@ -34,7 +34,7 @@ end
 
 
 """
-    ODEProblem(problem,callback=DifferentialEquations.CallbackSet())
+    ODEProblem(problem)
 
 Generate an [ODEProblem](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEProblem)
 from the [`ODEFunction`](@ref) which then can be solved by using the 
