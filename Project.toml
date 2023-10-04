@@ -16,7 +16,7 @@ SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-BandedMatrices = "0.17"
+BandedMatrices = "0.17, 1"
 DifferentialEquations = "7.7"
 DocStringExtensions = "0.9"
 LinearSolve = "2"
