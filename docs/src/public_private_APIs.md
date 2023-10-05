@@ -19,10 +19,10 @@ Params
 
 ### Compatibility with DifferentialEquations.jl
 
-```@docs
+<!-- ```@docs
 DifferentialEquations.ODEProblem
 Base.reshape
-```
+``` -->
 
 ### Interpolation of the obtained solution
 ```@docs
@@ -67,6 +67,6 @@ SkeelBerzins.interpolate_sol_space
 ### Compatibility with DifferentialEquations.jl
 
 The `ODEFunction` constructor is implicitely defined in the `ODEProblem` and so doesn't need to be considered by the user to solve the problem with the [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/) package.
-```@docs
+<!-- ```@docs
 DifferentialEquations.ODEFunction
-```
+``` -->
