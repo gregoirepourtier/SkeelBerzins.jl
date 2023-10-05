@@ -1,6 +1,5 @@
 using Documenter
-using DifferentialEquations
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 
 makedocs(
     modules = [SkeelBerzins],
