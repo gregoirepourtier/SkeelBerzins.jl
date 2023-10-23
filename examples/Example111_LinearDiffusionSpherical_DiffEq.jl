@@ -18,7 +18,7 @@ u(x,0) = x^2
 
 module Example111_LinearDiffusionSpherical_DiffEq
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 using LinearAlgebra
 
 

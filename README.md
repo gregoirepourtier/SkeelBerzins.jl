@@ -17,7 +17,7 @@ The Julia version must be greater than or equal to 1.6. More information about d
 
 To install the package, use one of the following commands:
 
-1\. From the Julian prompt:
+1\. From the REPL:
 
 ```jldoctest
 julia> using Pkg
@@ -31,5 +31,5 @@ julia> ]
 (@v1.6) pkg> add SkeelBerzins
 ```
 
-## Reference
+# Reference
 [1] Skeel, Robert D. and Berzins, Martin, "A Method for the Spatial Discretization of Parabolic Equations in One Space Variable", _SIAM Journal on Scientific and Statistical Computing_, Vol. 11, 1990, pp.1–32.

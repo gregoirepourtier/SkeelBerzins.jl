@@ -20,7 +20,7 @@ Then the function `pdeval` interpolates in space the obtained solution and its p
 
 module Example201_PartialDerivativeApprox
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 using LinearAlgebra
 
 function main()

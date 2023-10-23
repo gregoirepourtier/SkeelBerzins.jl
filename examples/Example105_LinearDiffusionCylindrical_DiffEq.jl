@@ -19,7 +19,7 @@ where $n = 2.404825557695773$.
 
 module Example105_LinearDiffusionCylindrical_DiffEq
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 using SpecialFunctions
 
 function main()

@@ -8,7 +8,7 @@ For more details on the problem, look at the following link: https://docs.sciml.
 =#
 
 module Example301_PDEOptim_SciMLSensitivity
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 
 using DelimitedFiles
 using Optimization, OptimizationPolyalgorithms, OptimizationOptimJL, SciMLSensitivity
