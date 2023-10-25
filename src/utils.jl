@@ -99,13 +99,13 @@ end
 """
 $(TYPEDEF)
 
-Mutable structure storing the problem definition.
+Structure storing the problem definition.
 
 $(TYPEDFIELDS)
 """
-mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFunction<:Function, 
-                                                                          icFunction<:Function, 
-                                                                          bdFunction<:Function }
+struct ProblemDefinition{ T, Tv<:AbstractVector, Ti<:Integer, Tm<:Number, TMat<:AbstractMatrix, pdeFunction<:Function, 
+                                                                                                icFunction<:Function, 
+                                                                                                bdFunction<:Function }
     """
     Number of unknowns
     """
@@ -119,7 +119,7 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     Grid of the problem
     """
-    xmesh::Vector{Tv}
+    xmesh::Tv
 
     """
     Time interval
@@ -139,18 +139,18 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     Jacobi matrix
     """
-    jac::Union{SparseMatrixCSC{Tv, Ti}, BandedMatrix{Tv}}
+    jac::TMat
 
     """
     Evaluation of the initial condition
     """
-    inival::Vector{Tv}
+    inival::Tv
 
     """
     Interpolation points from the paper
     """
-    ξ::Vector{Tv}
-    ζ::Vector{Tv}
+    ξ::Tv
+    ζ::Tv
     
     """
     Function defining the coefficients of the PDE
@@ -170,10 +170,9 @@ mutable struct ProblemDefinition{ T, Tv<:Number, Ti<:Integer, Tm<:Number, pdeFun
     """
     Preallocated vectors for interpolation in assemble! function when solving system of PDEs
     """
-    interpolant::Vector{Tv}
-    d_interpolant::Vector{Tv}
-    
-    ProblemDefinition{T,Tv,Ti,Tm,pdeFunction,icFunction,bdFunction}() where {T,Tv,Ti,Tm,pdeFunction,icFunction,bdFunction} = new()
+    interpolant::Tv
+    d_interpolant::Tv
+
 end
 
 
@@ -592,3 +591,107 @@ function interpolate_sol_time(u_approx, t)
 end
 
 (sol::AbstractDiffEqArray)(t) = interpolate_sol_time(sol,t)
+
+
+"""
+    get_quad_points_weights(m, alpha, beta, gamma, singular)
+
+Compute specific quadrature points and weights for the one point Gauss quadrature from the paper,
+according to the specific symmetry of the problem.
+
+Input arguments:
+- `m`: scalar representing the symmetry of the problem.
+- `alpha`: 1D array containing the left boundaries of the subintervals.
+- `beta`: 1D array containing the right boundaries of the subintervals.
+- `gamma`: 1D array containing the middle points of the subintervals.
+- `singular`: boolean indicating whether the problem is singular or not.
+
+Returns the quadrature points `\\xi` and the weights `\\zeta`.
+"""
+function get_quad_points_weights(m, α, β, γ, singular)
+
+    # Cartesian Coordinates
+    if m==0 # (Always Regular case)
+
+        # Quadrature point ξ and weight ζ for m=0
+        ξ = γ
+        ζ = γ
+    
+    # Cylindrical Polar Coordinates
+    elseif m==1
+        
+        # Quadrature point ξ and weight ζ for m=1
+        if singular
+            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
+            ζ = ((β.^2 .- α.^2) ./ (2 .*log.(β ./ α))).^(0.5)
+        else # Regular case
+            ξ = (β .- α) ./ log.(β ./ α)
+            ζ = (ξ .* γ ).^(0.5)
+        end
+    
+    # Spherical Polar Coordinates
+    else m==2
+
+        # Quadrature point ξ and weight ζ for m=2
+        if singular
+            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
+        else # Regular case
+            ξ = (α .* β .* log.(β ./ α)) ./ (β .- α)
+        end
+        ζ = (α .* β .* γ).^(1/3)
+    end
+
+    ξ, ζ
+end
+
+"""
+    get_sparsity_pattern(sparsity, Nx, npde, elTv)
+"""
+function get_sparsity_pattern(sparsity::Type{TMat}, Nx, npde, elTv) where {TMat <: SparseArrays.AbstractSparseMatrixCSC}
+
+    row    = Int64[]
+    column = Int64[]
+    vals   = elTv[]
+
+    for i ∈ 1:npde
+        for j ∈ 1:2*npde
+            push!(row,i)
+            push!(column,j)
+            push!(vals,one(elTv))
+        end
+    end
+    for i ∈ (Nx-1)*npde+1:Nx*npde
+        for j ∈ (Nx-2)*npde+1:Nx*npde
+            push!(row,i)
+            push!(column,j)
+            push!(vals,one(elTv))
+        end
+    end
+    for i ∈ npde+1:npde:(Nx-1)*npde
+        for k ∈ i:i+npde-1
+            for j ∈ i-npde:i+2*npde-1
+                push!(row,k)
+                push!(column,j)
+                push!(vals,one(elTv))
+            end
+        end
+    end
+    jac = sparse(row,column,vals)
+
+    jac
+end
+
+
+"""
+    get_sparsity_pattern(sparsity, Nx, npde, elTv)
+"""
+function get_sparsity_pattern(sparsity::Type{TMat}, 
+                              Nx, 
+                              npde, 
+                              elTv
+                              ) where {TMat <: BandedMatrices.AbstractBandedMatrix}
+    
+    jac = BandedMatrix{elTv}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1)) # Not working for general numeric datatypes
+
+    jac
+end

@@ -17,6 +17,7 @@ module Example107_LinearDiffusionSpherical
 
 using SkeelBerzins
 using LinearAlgebra
+using DifferentialEquations
 
 function main()
 

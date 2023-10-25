@@ -1,5 +1,5 @@
 # Solver for one-dimensional ellipitic and parabolic nonlinear partial differential equations
-# API methods
+# API methods built upon MATLAB's pdepe API
 
 
 """
@@ -8,30 +8,33 @@
 Solve 1D elliptic and/or parabolic partial differential equation(s) using the spatial discretization 
 method described in [1].
 The time discretization is either done by the implicit Euler method (internal method) or by using a 
-ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
-For more information on how to define the different inputs to solve a problem, look at the following sections: 
-[Problem Definition](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/problem_definition/) and 
-[Solvers](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/solvers/).
+ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) 
+package. For more information on how to define the different inputs to solve a problem, look at the 
+following sections: [Problem Definition](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/
+problem_definition/) and [Solvers](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/solvers/).
 
 Input arguments:
-- `m`: scalar refering to the symmetry of the problem. It can either take the value `m=0`, `m=1` or `m=2` 
-       representing cartesian, cylindrical or spherical coordinates respectively.
-- `pdefunction`: Function. Defines the PDE(s) formulation that incorporates capacity, flux and source terms.
-- `icfunction`: Function. Defines the initial condition of the system to solve (if `tstep ```\\neq``` Inf` - initial condition from the ODE/DAE problem, 
-                else if `tstep = Inf` - initial value used for the newton solver).
+- `m`: scalar referring to the symmetry of the problem. It can either take the value `m=0`, `m=1` or 
+       `m=2` representing cartesian, cylindrical or spherical coordinates respectively.
+- `pdefunction`: Function. Defines the formulation of the PDE(s) using capacity, flux and source 
+                 terms.
+- `icfunction`: Function. Defines the initial condition(s) of the problem to solve (if 
+                `tstep!=Inf` - initial condition(s) from the ODE/DAE problem, else if 
+                `tstep=Inf` - initial value(s) used for the newton solver).
 - `bdfunction`: Function. Defines the boundary conditions of the problem.
-- `xmesh`: one-dimensional array representing the mesh on which the user wants to obtain the solution.
+- `xmesh`: 1D array representing the spatial mesh on which the user intends to obtain the solution.
 - `tspan`: tuple ``(t_0, t_{end})`` representing the time interval of the problem.
 
 Keyword argument:
-- `params`: defines a [`SkeelBerzins.Params`](@ref) structure containing the keyword arguments from the solvers.
+- `params`: defines a [`SkeelBerzins.Params`](@ref) struct containing the keyword arguments from the 
+            solvers.
 
 Returns a [`RecursiveArrayTools.DiffEqArray`](https://docs.sciml.ai/RecursiveArrayTools/stable/
-array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) structure
-or a 1D Array, depending on the chosen solver. Moreover, if the solution is obtained from a time dependent problem, 
-a linear interpolation method can be use to evaluate the solution at any time step within the interval ``(t_0,t_{end})`` 
-(accessible using `sol(t)`). An interpolation similar as the [`pdeval`](@ref) function is available 
-on the solution object using the command `sol(x_eval,t,pb)`.
+array_types/#RecursiveArrayTools.DiffEqArray), a [`SkeelBerzins.ProblemDefinition`](@ref) struct
+or a 1D Array, depending on the selected solver. Moreover, if the solution is obtained from a time 
+dependent problem, a linear interpolation method can be use to evaluate the solution at any time step 
+within the interval ``(t_0,t_{end})`` (accessible using `sol(t)`). An interpolation similar as the 
+[`pdeval`](@ref) function is available on the solution object using the command `sol(x_eval,t,pb)`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelBerzins.Params()) where {T1,T2,T3}
 
@@ -43,132 +46,96 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
     # Size of the space discretization
     Nx = length(xmesh)
 
-    # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
+    # Regular case: m=0 or a>0 (Galerkin method)
+    # Singular case: m≥1 and a=0 (Petrov-Galerkin method)
     singular = m≥1 && xmesh[1]==0
 
     α     = @view xmesh[1:end-1]
     β     = @view xmesh[2:end]
-    gamma = (α .+ β) ./ 2
+    γ = (α .+ β) ./ 2
 
-    Tv = eltype(xmesh)
-    Tm = eltype(tspan)
+    ξ, ζ = get_quad_points_weights(m, α, β, γ, singular)
+
+    Tv   = typeof(xmesh)
+    elTv = eltype(xmesh)
+    Tm   = eltype(tspan)
 
     # Number of unknows in the PDE problem
     npde = length(icfun(xmesh[1]))
 
-    inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
+    # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
+    inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) 
 
     Ti = eltype(npde)
 
-    pb = ProblemDefinition{npde, Tv, Ti, Tm, T1, T2, T3}()
-
-    pb.npde          = npde
-    pb.Nx            = Nx
-    pb.xmesh         = xmesh
-    pb.tspan         = tspan
-    pb.singular      = singular
-    pb.m             = m
-    pb.inival        = inival
-    
-    pb.pdefunction   = pdefun
-    pb.icfunction    = icfun
-    pb.bdfunction    = bdfun
-
-    pb.interpolant   = zeros(Tv,npde)
-    pb.d_interpolant = zeros(Tv,npde)
-
-    # Cartesian Coordinates
-    if m==0 # (Always Regular case)
-
-        # Quadrature point ξ and weight ζ for m=0
-        ξ = gamma
-        ζ = gamma
-    
-    # Cylindrical Polar Coordinates
-    elseif m==1
-        
-        # Quadrature point ξ and weight ζ for m=1
-        if singular
-            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
-            ζ = ((β.^2 .- α.^2) ./ (2 .*log.(β ./ α))).^(0.5)
-        else # Regular case
-            ξ = (β .- α) ./ log.(β ./ α)
-            ζ = (ξ .* gamma ).^(0.5)
-        end
-    
-    # Spherical Polar Coordinates
-    else m==2
-
-        # Quadrature point ξ and weight ζ for m=2
-        if singular
-            ξ = (2/3) .* (α .+ β  .- ((α .* β) ./ (α .+ β)))
-        else # Regular case
-            ξ = (α .* β .* log.(β ./ α)) ./ (β .- α)
-        end
-        ζ = (α .* β .* gamma).^(1/3)
-    end
-
-    pb.ξ = ξ
-    pb.ζ = ζ
-
-
-    # Choosing how to initialize the jacobian with sparsity pattern (to review)
     if params.sparsity == :sparseArrays
-        row    = Int64[]
-        column = Int64[]
-	    vals   = Tv[]
-
-        for i ∈ 1:npde
-            for j ∈ 1:2*npde
-                push!(row,i)
-                push!(column,j)
-                push!(vals,one(Tv))
-            end
-        end
-        for i ∈ (Nx-1)*npde+1:Nx*npde
-            for j ∈ (Nx-2)*npde+1:Nx*npde
-                push!(row,i)
-                push!(column,j)
-                push!(vals,one(Tv))
-            end
-        end
-        for i ∈ npde+1:npde:(Nx-1)*npde
-            for k ∈ i:i+npde-1
-                for j ∈ i-npde:i+2*npde-1
-                    push!(row,k)
-                    push!(column,j)
-                    push!(vals,one(Tv))
-                end
-            end
-        end
-        pb.jac = sparse(row,column,vals)
-    elseif params.sparsity == :banded
-        pb.jac = BandedMatrix{Tv}(Ones(Nx*npde,Nx*npde),(2*npde-1,2*npde-1)) # Not working for general numeric datatypes
+        Tjac = SparseMatrixCSC{elTv, Ti}
+    else
+        Tjac = BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}
     end
 
+    # Choosing how to initialize the jacobian with sparsity pattern
+    jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
+
+    pb = ProblemDefinition{npde, Tv, Ti, Tm, Tjac, T1, T2, T3}(
+        npde,
+        Nx,
+        xmesh,
+        tspan,
+        singular,
+        m,
+        jac,
+        inival,
+        ξ,
+        ζ,
+        pdefun,
+        icfun,
+        bdfun,
+        similar(xmesh,npde),
+        similar(xmesh,npde),
+    )
 
     # Solve via implicit Euler method or an ODE/DAE solver of DifferentialEquations.jl
     if params.solver == :euler # implicit Euler method
 
-        colors = matrix_colors(pb.jac)
+        colors = matrix_colors(pb.jac)::Vector{Ti}
 
         # Preallocations for Newton's method
-        rhs   = zeros(Tv,npde*Nx)
-        cache = ForwardColorJacCache(implicitEuler!, rhs, dx=rhs, colorvec=colors, sparsity=pb.jac)
+        rhs   = zeros(elTv,npde*Nx)
+        cache = ForwardColorJacCache(implicitEuler!, rhs ; dx=rhs, colorvec=colors, sparsity=pb.jac)
         
-        if params.tstep==Inf # Solve time independent problems (stationary case) if user set tstep to Inf -> 1 step Implicit Euler
+        # Solve time independent problem (stationary case); set tstep to Inf -> 1 step Implicit Euler
+        if params.tstep==Inf 
 
             # To store the history of the Newton solver
             if params.hist
-                storage = Tv[]
+                storage = elTv[]
             end
             
             un = inival
 
             if params.hist
-                unP1, history = newton_stat(un, params.tstep, 1, pb, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                unP1, history = newton_stat(un, 
+                                            params.tstep, 
+                                            1, 
+                                            pb, 
+                                            cache, 
+                                            rhs ; 
+                                            tol=params.tol, 
+                                            maxit=params.maxit, 
+                                            hist_flag=params.hist, 
+                                            linSol=params.linSolver)
             else
-                unP1 = newton_stat(un, params.tstep, 1, pb, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                unP1 = newton_stat(un, 
+                                   params.tstep, 
+                                   1, 
+                                   pb, 
+                                   cache, 
+                                   rhs ; 
+                                   tol=params.tol, 
+                                   maxit=params.maxit, 
+                                   hist_flag=params.hist, 
+                                   linSol=params.linSolver)
             end
 
             if params.hist && params.data
@@ -181,11 +148,12 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 
             return unP1
         
-        else # Solve time dependent problems (instationary case) via Implicit Euler method
+        # Solve time dependent problems (instationary case) via Implicit Euler method
+        else 
 
             # To store the history of the Newton solver
             if params.hist
-                storage = Vector{Tv}[]
+                storage = Vector{elTv}[]
             end
 
             # Build the mass matrix
@@ -203,10 +171,10 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
             
             un = copy(inival)
             if pb.npde == 1
-                results   = Vector{Tv}[]
+                results   = Vector{elTv}[]
                 push!(results,un)
             else
-                results   = Matrix{Tv}[]
+                results   = Matrix{elTv}[]
                 push!(results,reshape(inival,(npde,Nx)))
             end
 
@@ -218,13 +186,53 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
                 lmul!(mass_mat_diag,un)
 
                 if params.hist && flag_tstep
-                    unP1, history = newton(un, params.tstep, t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                    unP1, history = newton(un, 
+                                           params.tstep, 
+                                           t, 
+                                           pb, 
+                                           mass_mat_vec, 
+                                           cache, 
+                                           rhs ; 
+                                           tol=params.tol, 
+                                           maxit=params.maxit, 
+                                           hist_flag=params.hist, 
+                                           linSol=params.linSolver)
                 elseif flag_tstep
-                    unP1          = newton(un, params.tstep, t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                    unP1          = newton(un, 
+                                           params.tstep, 
+                                           t, 
+                                           pb, 
+                                           mass_mat_vec, 
+                                           cache, 
+                                           rhs ; 
+                                           tol=params.tol, 
+                                           maxit=params.maxit, 
+                                           hist_flag=params.hist, 
+                                           linSol=params.linSolver)
                 elseif params.hist && !flag_tstep
-                    unP1, history = newton(un, params.tstep[i+1], t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                    unP1, history = newton(un, 
+                                           params.tstep[i+1], 
+                                           t, 
+                                           pb, 
+                                           mass_mat_vec, 
+                                           cache, 
+                                           rhs ; 
+                                           tol=params.tol, 
+                                           maxit=params.maxit, 
+                                           hist_flag=params.hist, 
+                                           linSol=params.linSolver)
                 elseif !flag_tstep
-                    unP1          = newton(un, params.tstep[i+1], t, pb, mass_mat_vec, cache, rhs ; tol=params.tol, maxit=params.maxit, hist_flag=params.hist, linSol=params.linSolver)
+                    unP1          = newton(un, 
+                                           params.tstep[i+1], 
+                                           t, 
+                                           pb, 
+                                           mass_mat_vec, 
+                                           cache, 
+                                           rhs ; 
+                                           tol=params.tol, 
+                                           maxit=params.maxit, 
+                                           hist_flag=params.hist, 
+                                           linSol=params.linSolver)
                 end
 
                 if pb.npde == 1
@@ -252,8 +260,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan ; params=SkeelB
 
             return sol
         end
-
-    elseif params.solver == :DiffEq # Use the DifferentialEquations.jl package to solve the system of differential equations 
+    
+    # Use the DifferentialEquations.jl package to solve the system of differential equations 
+    elseif params.solver == :DiffEq 
 
         # returns data from the problem to define an ODEProblem
         return pb
@@ -266,23 +275,24 @@ end
 """
     pdepe(m, pdefunction, icfunction, bdfunction, xmesh ; params=nothing)
 
-Solve 1D elliptic PDE(s) using the spatial discretization method described in [1] - [`pdepe`](@ref) variant to solve stationary problems.
-Performs one step of the implicit Euler method.
-For more information, look at link implicit Euler...
+Solve 1D elliptic PDE(s) using the spatial discretization method described in [1] - [`pdepe`](@ref) 
+variant to solve stationary problems. Performs one step of the implicit Euler method.
 
 Input arguments:
-- `m`: scalar refering to the symmetry of the problem. It can either take the value `m=0`, `m=1` or `m=2` representing 
-       cartesian, cylindrical or spherical coordinates respectively.
-- `pdefunction`: Function. Defines the PDE(s) formulation which includes the capacity, flux and source terms (capacity term should be set to 0).
-- `icfunction`: Function. It defines the initial value used for the Newton solver.
+- `m`: scalar referring to the symmetry of the problem. It can either take the value `m=0`, `m=1` or
+       `m=2` representing cartesian, cylindrical or spherical coordinates respectively.
+- `pdefunction`: Function. Defines the formulation of the PDE(s) using capacity, flux and source 
+                 terms (capacity term should be set to 0).
+- `icfunction`: Function. It defines the initial value(s) used for the Newton solver.
 - `bdfunction`: Function. Defines the boundary conditions of the problem.
-- `xmesh`: one-dimensional array representing the mesh on which the user wants to obtain the solution.
+- `xmesh`: 1D array representing the spatial mesh on which the user intends to obtain the solution.
 
 Keyword argument:
-- `params`: defines a [`SkeelBerzins.Params`](@ref) structure containing the keyword arguments from the solvers.
+- `params`: defines a [`SkeelBerzins.Params`](@ref) structure containing the keyword arguments from 
+            the solvers.
 
-
-Returns a 1D Array with the solution at the points from the spatial discretization `xmesh`.
+Returns a 1D Array with the solution available at the points defined by the spatial discretization 
+`xmesh`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh ; params=nothing) where {T1,T2,T3}
 

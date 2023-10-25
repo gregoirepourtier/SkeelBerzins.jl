@@ -18,6 +18,7 @@ Params
 ```
 
 ### Compatibility with DifferentialEquations.jl
+To define an `ODEProblem` and solve it, look at [example](solvers.md#differentialequationsjl).
 
 ### Interpolation of the obtained solution
 ```@docs
@@ -44,6 +45,8 @@ SkeelBerzins.newton_stat
 ### Problem definition
 ```@docs
 SkeelBerzins.ProblemDefinition
+SkeelBerzins.get_sparsity_pattern
+SkeelBerzins.get_quad_points_weights
 ```
 
 ### Implicit Euler method

@@ -22,7 +22,7 @@ DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 SkeelBerzinsDiffEq = "DifferentialEquations"
 
 [compat]
-BandedMatrices = "0.17"
+BandedMatrices = "0.17,1"
 DifferentialEquations = "7.7"
 DocStringExtensions = "0.9"
 LinearSolve = "2"

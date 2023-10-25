@@ -17,6 +17,7 @@ module Example103_LinearDiffusionCylindrical
 
 using SkeelBerzins
 using SpecialFunctions
+using DifferentialEquations
 
 function main()
 

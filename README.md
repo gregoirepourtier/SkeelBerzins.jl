@@ -7,7 +7,7 @@
 
 Solver for one-dimensional parabolic and elliptic nonlinear partial differential equations.
 
-This package is based on the spatial discretization for the method of lines introduced by Skeel and Berzins in [1]. For transient problems, the time discretization is performed either by the implicit Euler method (internal method) or by using an ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
+This package is based on the spatial discretization for the method of lines introduced by Skeel and Berzins in [[1]](#Reference) and the MATLAB's [pdepe](https://de.mathworks.com/help/matlab/ref/pdepe.html) API. For transient problems, the time discretization is performed either by the implicit Euler method (internal method) or by using an ODE/DAE solver from the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
 
 # Prerequisite
 

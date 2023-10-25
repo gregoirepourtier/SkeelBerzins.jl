@@ -20,7 +20,7 @@ u_2(x,0) = 0
 ```
 module Example106_SystemReactionDiffusion
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 
 
 function main()

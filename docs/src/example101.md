@@ -14,7 +14,7 @@ u(x,0) = exp(-100*(x-0.25)^2)
 ```
 module Example101_LinearDiffusion
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 
 
 function main()

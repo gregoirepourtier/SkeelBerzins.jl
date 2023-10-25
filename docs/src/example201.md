@@ -20,6 +20,7 @@ module Example201_PartialDerivativeApprox
 
 using SkeelBerzins
 using LinearAlgebra
+using DifferentialEquations
 
 function main()
 
