@@ -596,8 +596,8 @@ end
 """
     get_quad_points_weights(m, alpha, beta, gamma, singular)
 
-Compute specific quadrature points and weights for the one point Gauss quadrature from the paper,
-according to the specific symmetry of the problem.
+Calculate the quadrature points and weights for the one-point Gauss quadrature based on the 
+problem's specific symmetry, as described in the paper [1].
 
 Input arguments:
 - `m`: scalar representing the symmetry of the problem.
@@ -606,7 +606,7 @@ Input arguments:
 - `gamma`: 1D array containing the middle points of the subintervals.
 - `singular`: boolean indicating whether the problem is singular or not.
 
-Returns the quadrature points `\\xi` and the weights `\\zeta`.
+Returns the quadrature points `xi` and the weights `zeta`.
 """
 function get_quad_points_weights(m, α, β, γ, singular)
 
@@ -647,7 +647,11 @@ end
 """
     get_sparsity_pattern(sparsity, Nx, npde, elTv)
 """
-function get_sparsity_pattern(sparsity::Type{TMat}, Nx, npde, elTv) where {TMat <: SparseArrays.AbstractSparseMatrixCSC}
+function get_sparsity_pattern(sparsity::Type{TMat}, 
+                              Nx, 
+                              npde, 
+                              elTv
+                              ) where {TMat <: SparseArrays.AbstractSparseMatrixCSC}
 
     row    = Int64[]
     column = Int64[]

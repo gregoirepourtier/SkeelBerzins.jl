@@ -89,7 +89,7 @@ DifferentialEquations.jl.
 
 ## Examples
 
-### Internal method: implicit Euler method
+### Solve with internal method: implicit Euler method
 ```
 # Example of solving a linear diffusion PDE using the internal implicit Euler method.
 
@@ -130,7 +130,7 @@ tspan = (0,1)
 sol = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan)
 ```
 
-### DifferentialEquations.jl
+### Solve with DifferentialEquations.jl
 ```
 # Example of solving a linear diffusion PDE using the DifferentialEquations.jl package.
 

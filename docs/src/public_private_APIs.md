@@ -18,7 +18,10 @@ Params
 ```
 
 ### Compatibility with DifferentialEquations.jl
-To define an `ODEProblem` and solve it, look at [example](solvers.md#differentialequationsjl).
+To define an `ODEProblem` and solve it, please refer to the package extension  
+[SkeelBerzinsDiffEq.jl](https://github.com/gregoirepourtier/SkeelBerzins.jl/blob/main/ext/SkeelBerz
+insDiffEq.jl) and this [example](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/solvers/
+#Solve-with-DifferentialEquations.jl).
 
 ### Interpolation of the obtained solution
 ```@docs
@@ -27,7 +30,8 @@ pdeval
 
 ## Private API
 
-These methods should only be considered for developers or people trying to understand the inner workings of the package.
+These methods should only be considered for developers or people trying to understand the inner 
+workings of the package.
 
 ### Spatial Discretization
 ```@docs
@@ -61,7 +65,3 @@ SkeelBerzins.mass_matrix
 SkeelBerzins.interpolate_sol_time
 SkeelBerzins.interpolate_sol_space
 ```
-
-### Compatibility with DifferentialEquations.jl
-
-The `ODEFunction` constructor is implicitely defined in the `ODEProblem` and so doesn't need to be considered by the user to solve the problem with the [DifferentialEquations.jl](https://docs.sciml.ai/DiffEqDocs/stable/) package.
