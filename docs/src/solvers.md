@@ -52,7 +52,7 @@ With the complete PDE formulation defined, we can now introduce the solver funct
 Look [`pdepe`](@ref).
 
 
-### Internal method: implicit Euler method
+### Solve with internal method: implicit Euler method
 
 #### Parabolic equation(s)
 
