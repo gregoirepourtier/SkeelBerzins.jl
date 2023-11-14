@@ -9,7 +9,7 @@ The solvers expect the PDE problem to be described in the following way.
 ## PDE formulation
 
 In order to define the PDE(s), we have to follow the format introduced in the previous section on 
-[Problem definition](problem_definition.md#problem-definition).
+[Problem Definition](@ref).
 For the purpose of this explanation, we use the function `pdefunction(x,t,u,dudx)` to describe the 
 PDE(s). The inputs of the function are self-explanatory. It will then return the capacity 
 `c(x,t,u,dudx)`, the flux `f(x,t,u,dudx)` and the source `s(x,t,u,dux)` terms.
@@ -52,7 +52,7 @@ With the complete PDE formulation defined, we can now introduce the solver funct
 Look [`pdepe`](@ref).
 
 
-### Solve with internal method: implicit Euler method
+### Using internal method: implicit Euler method
 
 #### Parabolic equation(s)
 
@@ -78,7 +78,7 @@ using the Newton solver (see [`SkeelBerzins.newton`](@ref)).
 It results that the solution for the stationary problem can be obtained by running one iteration of 
 the implicit Euler method.
 
-### Solve with DifferentialEquations.jl
+### Using DifferentialEquations.jl
 
 [SkeelBerzins.jl](https://github.com/gregoirepourtier/SkeelBerzins.jl) is also compatible with the 
 [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.

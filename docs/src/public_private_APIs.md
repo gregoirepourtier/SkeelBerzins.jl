@@ -20,7 +20,7 @@ Params
 ### Compatibility with DifferentialEquations.jl
 To define an `ODEProblem` and solve it, please refer to the package extension  
 [SkeelBerzinsDiffEq.jl](https://github.com/gregoirepourtier/SkeelBerzins.jl/blob/main/ext/SkeelBerzinsDiffEq.jl) 
-and this [example](https://gregoirepourtier.github.io/SkeelBerzins.jl/dev/solvers/#Solve-with-DifferentialEquations.jl-2).
+and the following section [Solve with DifferentialEquations.jl](@ref).
 
 ### Interpolation of the obtained solution
 ```@docs

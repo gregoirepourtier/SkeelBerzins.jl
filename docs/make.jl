@@ -13,15 +13,15 @@ makedocs(
                           "Achieve performance" => "performance.md",
                           "Public and Private APIs" => "public_private_APIs.md"
                          ],
-             "Examples" => ["101: Linear Diffusion equation" =>"example101.md",
-                            "102: Nonlinear Diffusion equation" =>"example102.md",
-                            "103: Linear Diffusion equation in cylindrical coordinates" =>"example103.md",
-                            "104: Poisson equation" =>"example104.md",
-                            "105: Stationary nonlinear diffusion equation" =>"example105.md",
-                            "106: System of Reaction-Diffusion equations" =>"example106.md",
-                            "107: Linear Diffusion equation in spherical coordinates" =>"example107.md",
-                            "201: Interpolation of Partial Derivatives" =>"example201.md",
-                            "301: PDE Constrained Optimization" =>"example301.md"
+             "Examples" => ["101: Linear Diffusion equation" =>"examples/example101.md",
+                            "102: Nonlinear Diffusion equation" =>"examples/example102.md",
+                            "103: Linear Diffusion equation in cylindrical coordinates" =>"examples/example103.md",
+                            "104: Poisson equation" =>"examples/example104.md",
+                            "105: Stationary nonlinear diffusion equation" =>"examples/example105.md",
+                            "106: System of Reaction-Diffusion equations" =>"examples/example106.md",
+                            "107: Linear Diffusion equation in spherical coordinates" =>"examples/example107.md",
+                            "201: Interpolation of Partial Derivatives" =>"examples/example201.md",
+                            "301: PDE Constrained Optimization" =>"examples/example301.md"
                             ]
             ]
 )
