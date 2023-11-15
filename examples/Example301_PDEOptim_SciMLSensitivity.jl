@@ -49,12 +49,11 @@ function f(p)
         pl,ql,pr,qr
     end
 
-    params_pdepe = SkeelBerzins.Params()
-    params_pdepe.solver = :DiffEq
+    params_pdepe = SkeelBerzins.Params(solver=:DiffEq)
 
-    pb = pdepe(m,pdefun,icfun,bcfun,collect(x),tspan ; params=params_pdepe)
+    pb   = pdepe(m,pdefun,icfun,bcfun,collect(x),tspan ; params=params_pdepe)
     prob = DifferentialEquations.ODEProblem(pb)
-    sol = DifferentialEquations.solve(prob,RadauIIA3(linsolve = SparspakFactorization()), dt=dt,saveat=t)
+    sol  = DifferentialEquations.solve(prob,RadauIIA3(linsolve=SparspakFactorization()), dt=dt,saveat=t)
 
     sol
 end

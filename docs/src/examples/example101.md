@@ -55,11 +55,10 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+	params = SkeelBerzins.Params(solver=:DiffEq)
 
-	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-	problem   = DifferentialEquations.ODEProblem(pb)
+	pb         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
+	problem    = DifferentialEquations.ODEProblem(pb)
 	sol_diffEq = DifferentialEquations.solve(problem,Tsit5())
 
 	sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
@@ -68,7 +67,7 @@ function main()
 end
 
 function test()
-    testval_diffEq = 3.720992375010752
+	testval_diffEq = 3.720992375010752
 	testval_euler  = 3.721004873950427
 	approx_diffEq, approx_euler = main()
 

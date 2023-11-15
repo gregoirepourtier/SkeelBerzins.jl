@@ -25,11 +25,10 @@ function main()
 	T = 1
 
 	x_mesh = collect(range(0,L,length=N_x))
-	tspan  = (0, T)
 
 	m = 0
 
-	function pdefun_test(x,t,u,dudx)
+	function pdefun(x,t,u,dudx)
 		c = 1
 		f = 2*u*dudx 
 		s = 1
@@ -37,14 +36,14 @@ function main()
 		return c,f,s
 	end
 
-	function icfun_test(x)
+	function icfun(x)
 		u0 = 0.1
 		
 		return u0
 	end
 
 
-	function bdfun_test(xl,ul,xr,ur,t)
+	function bdfun(xl,ul,xr,ur,t)
 		pl = ul - 0.1
 		ql = 0
 		pr = ur - 0.1
@@ -53,19 +52,15 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	params = SkeelBerzins.Params()
-	params.tstep = Inf
-
-	sol  = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
-	sol2 = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh)
+	sol = pdepe(m,pdefun,icfun,bdfun,x_mesh)
 	
-	return sum(sol),sum(sol2)
+	return sum(sol)
 end
 
 function test()
     testval=6.025575019008793
-    sol1,sol2 = main()
-    sol1 ≈ sol2 ≈ testval
+    sol = main()
+    sol ≈ testval
 end
 
 end

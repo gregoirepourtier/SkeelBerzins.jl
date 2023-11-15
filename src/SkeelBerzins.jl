@@ -6,6 +6,7 @@ using SparseArrays
 using SparseDiffTools
 
 using RecursiveArrayTools
+using DocStringExtensions
 using Reexport
 
 @reexport using LinearSolve

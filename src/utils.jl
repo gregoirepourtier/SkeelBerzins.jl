@@ -179,11 +179,11 @@ end
 """
 $(TYPEDEF)
 
-Mutable structure containing all the keyword arguments for the solver [`pdepe`](@ref).
+Structure containing all the keyword arguments for the solver [`pdepe`](@ref).
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct Params
+Base.@kwdef struct Params
 
     """
     Choice of the time discretization either use `:euler` for internal implicit Euler method or `:DiffEq` for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
@@ -202,14 +202,14 @@ Base.@kwdef mutable struct Params
     hist::Bool = false
 
     """
-    Choice of the type of matrix (`:sparseArrays`, `:exSparse`, `:banded`) use to store the jacobian.
+    Choice of the type of matrix (`:sparseArrays`, `:banded`) use to store the jacobian.
     """
     sparsity::Symbol = :sparseArrays
 
     """
     Choice of the solver for the LSE in the newton method, see [`LinearSolve.jl`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/).
     """
-    linSolver::Union{LinearSolve.SciMLLinearSolveAlgorithm, Nothing} = nothing
+    linSolver::Union{LinearSolve.SciMLLinearSolveAlgorithm, Nothing} = KLUFactorization()
 
     """
     Maximum number of iterations for the Newton solver.
@@ -594,6 +594,74 @@ end
 
 
 """
+    problem_init(m, xmesh, tspan, pdefun, icfun, bdfun, params)
+
+Function initializing the problem.
+
+Input arguments: similar as [`pdepe`](@ref).
+
+Returns the size of the space discretization Nx, the number of PDEs npde, the initial value inival, 
+some data types elTv and Ti, and the struct containing the problem definition pb.
+"""
+function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params) where {T1, T2, T3}
+
+    # Size of the space discretization
+    Nx = length(xmesh)
+
+    # Regular case: m=0 or a>0 (Galerkin method)
+    # Singular case: m≥1 and a=0 (Petrov-Galerkin method)
+    singular = m≥1 && xmesh[1]==0
+
+    α     = @view xmesh[1:end-1]
+    β     = @view xmesh[2:end]
+    γ = (α .+ β) ./ 2
+
+    ξ, ζ = get_quad_points_weights(m, α, β, γ, singular)
+
+    Tv   = typeof(xmesh)
+    elTv = eltype(xmesh)
+    Tm   = eltype(tspan)
+
+    # Number of unknows in the PDE problem
+    npde = length(icfun(xmesh[1]))
+
+    # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
+    inival = npde==1 ? icfun.(xmesh) : vec(reduce(hcat,icfun.(xmesh))) 
+
+    Ti = eltype(npde)
+
+    if params.sparsity == :sparseArrays
+        Tjac = SparseMatrixCSC{elTv, Ti}
+    else
+        Tjac = BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}
+    end
+
+    # Choosing how to initialize the jacobian with sparsity pattern
+    jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
+
+    pb = ProblemDefinition{npde, Tv, Ti, Tm, Tjac, T1, T2, T3}(
+        npde,
+        Nx,
+        xmesh,
+        tspan,
+        singular,
+        m,
+        jac,
+        inival,
+        ξ,
+        ζ,
+        pdefun,
+        icfun,
+        bdfun,
+        similar(xmesh,npde),
+        similar(xmesh,npde),
+    )
+
+    Nx, npde, inival, elTv, Ti, pb
+end
+
+
+"""
     get_quad_points_weights(m, alpha, beta, gamma, singular)
 
 Calculate the quadrature points and weights for the one-point Gauss quadrature based on the 
@@ -646,6 +714,8 @@ end
 
 """
     get_sparsity_pattern(sparsity, Nx, npde, elTv)
+
+Function that provides the sparsity pattern in a SparseMatrixCSC.
 """
 function get_sparsity_pattern(sparsity::Type{TMat}, 
                               Nx, 
@@ -688,6 +758,8 @@ end
 
 """
     get_sparsity_pattern(sparsity, Nx, npde, elTv)
+
+Function that provides the sparsity pattern in a BandedMatrix.
 """
 function get_sparsity_pattern(sparsity::Type{TMat}, 
                               Nx, 

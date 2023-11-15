@@ -48,6 +48,7 @@ SkeelBerzins.newton_stat
 ### Problem definition
 ```@docs
 SkeelBerzins.ProblemDefinition
+SkeelBerzins.problem_init
 SkeelBerzins.get_sparsity_pattern
 SkeelBerzins.get_quad_points_weights
 ```

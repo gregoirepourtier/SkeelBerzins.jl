@@ -17,7 +17,19 @@ u(x,0) = exp(-100*(x-0.25)^2)
 
 module Example101_LinearDiffusion
 
-using SkeelBerzins, DifferentialEquations
+using SkeelBerzins, DifferentialEquations, DoubleFloats
+
+function solve_problem(m,pdefun,icfun,bdfun,xmesh,tspan,params)
+	if params.solver == :DiffEq
+		pb         = pdepe(m,pdefun,icfun,bdfun,xmesh,tspan ; params=params)
+		problem    = DifferentialEquations.ODEProblem(pb)
+		sol = DifferentialEquations.solve(problem,Tsit5()) # Rosenbrock23() for stiff Problems
+	else
+		sol = pdepe(m,pdefun,icfun,bdfun,xmesh,tspan ; params=params)
+	end
+
+	sol
+end
 
 
 function main()
@@ -58,16 +70,22 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+	params_DiffEq           = SkeelBerzins.Params(solver=:DiffEq)
+	params_DiffEq_banded    = SkeelBerzins.Params(solver=:DiffEq,sparsity=:banded)
+	params_DiffEq_SparseCSC = SkeelBerzins.Params(solver=:DiffEq,sparsity=:SparseArrays)
 
-	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-	problem   = DifferentialEquations.ODEProblem(pb)
-	sol_diffEq = DifferentialEquations.solve(problem,Tsit5())
+	sol_DiffEq           = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_DiffEq)
+	sol_DiffEq_banded    = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_DiffEq_banded)
+	sol_DiffEq_SparseCSC = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_DiffEq_SparseCSC)
 
-	sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
+	tstep = collect(0:0.1:1)
+	params_euler_vecTstep    = SkeelBerzins.Params(solver=:euler,tstep=tstep,hist=true)
+	params_euler_fixTstep    = SkeelBerzins.Params(solver=:euler,tstep=1e-3)
 
-	return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
+	sol_euler_vecTstep = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_euler_vecTstep)
+	sol_euler_fixTstep = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_euler_fixTstep)
+
+	return (sum(sol_DiffEq.u[end]), sum(sol_euler_fixTstep.u[end]))
 end
 
 function test()

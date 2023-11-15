@@ -69,15 +69,13 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	params_diffEq = SkeelBerzins.Params()
-	params_diffEq.solver = :DiffEq
+	params_diffEq = SkeelBerzins.Params(solver=:DiffEq)
 
 	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params_diffEq)
 	problem = DifferentialEquations.ODEProblem(pb)
 	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
 
-	params_euler = SkeelBerzins.Params()
-	params_euler.tstep = 1e-4
+	params_euler = SkeelBerzins.Params(tstep=1e-4)
 
 	sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan; params=params_euler)
 

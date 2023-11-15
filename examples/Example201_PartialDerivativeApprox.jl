@@ -56,12 +56,11 @@ function main()
     xmesh = collect(range(0,1,length=n))
     tspan = (0,1)
 
-    params=SkeelBerzins.Params()
-    params.solver = :DiffEq
+    params=SkeelBerzins.Params(solver=:DiffEq)
 
-    pb = pdepe(m,pdefun,icfun,bcfun,xmesh,tspan ; params=params)
+    pb      = pdepe(m,pdefun,icfun,bcfun,xmesh,tspan ; params=params)
     problem = DifferentialEquations.ODEProblem(pb)
-    sol = DifferentialEquations.solve(problem,Rosenbrock23(),saveat=1/(n-1))
+    sol     = DifferentialEquations.solve(problem,Rosenbrock23(),saveat=1/(n-1))
 
     function analytical(t)     
         It = 0

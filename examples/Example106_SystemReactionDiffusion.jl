@@ -38,7 +38,7 @@ function main()
 
 	m = 0
 
-	function pdefun_test(x,t,u,dudx)
+	function pdefun(x,t,u,dudx)
 		c = SVector(1,1)
 		f = SVector(0.5,0.1) .* dudx
 		y = u[1] - u[2]
@@ -47,14 +47,14 @@ function main()
 		return c,f,s
 	end
 
-	function icfun_test(x)
+	function icfun(x)
 		u0 = SVector(0.0, 0.0)
 		
 		return u0
 	end
 
 
-	function bdfun_test(xl,ul,xr,ur,t)
+	function bdfun(xl,ul,xr,ur,t)
 		pl = SVector(ul[1]-1.0, 0)
     	ql = SVector(0, 1)
 		pr = SVector(0, ur[2])
@@ -63,17 +63,15 @@ function main()
 		return pl,ql,pr,qr
 	end
 
-	params_diffEq = SkeelBerzins.Params()
-	params_diffEq.solver = :DiffEq
+	params_diffEq = SkeelBerzins.Params(solver=:DiffEq)
 
-	pb = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params_diffEq)
-	problem = DifferentialEquations.ODEProblem(pb)
+	pb         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params_diffEq)
+	problem    = DifferentialEquations.ODEProblem(pb)
 	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
 
-	params_euler = SkeelBerzins.Params()
-	params_euler.tstep = 1e-2
+	params_euler = SkeelBerzins.Params(tstep=1e-2)
 
-	sol_euler = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params_euler)
+	sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params_euler)
 
 	return (sum(sol_diffEq.u[end]),sum(sol_euler.u[end]))
 end

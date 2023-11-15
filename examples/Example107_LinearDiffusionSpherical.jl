@@ -57,12 +57,11 @@ function main()
         return pl,ql,pr,qr
     end
 
-    params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+    params = SkeelBerzins.Params(solver=:DiffEq)
 
-    pb      = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-	problem = DifferentialEquations.ODEProblem(pb)
-	sol_diffEq     = DifferentialEquations.solve(problem,Rosenbrock23())
+    pb         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
+	problem    = DifferentialEquations.ODEProblem(pb)
+	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
 
     sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
 
