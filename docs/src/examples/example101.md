@@ -70,7 +70,7 @@ function main()
     params_DiffEq_banded      = SkeelBerzins.Params(solver=:DiffEq,sparsity=:banded)
 
     sol_DiffEq             = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_DiffEq)
-    sol_DiffEq_banded      = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_DiffEq_banded)
+    sol_DiffEq_banded      = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_DiffEq_banded ; linsolve=LUFactorization())
     sol_DiffEq_doubleFloat = solve_problem(m,pdefun,icfun,bdfun,x_mesh_doubleFloat,tspan,params_DiffEq ; linsolve=SparspakFactorization())
 
     tstep = collect(0:1e-3:1)
@@ -79,7 +79,7 @@ function main()
 
     sol_euler_vecTstep, hist = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_euler_vecTstep)
     sol_euler_fixTstep       = solve_problem(m,pdefun,icfun,bdfun,x_mesh,tspan,params_euler_fixTstep)
-    sol_euler_banded         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; solver=:euler, sparsity=:banded, tstep=1e-3, linsolve=nothing)
+    sol_euler_banded         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; solver=:euler, sparsity=:banded, tstep=1e-3, linsolve=LUFactorization())
     sol_euler_doubleFloat    = pdepe(m,pdefun,icfun,bdfun,x_mesh_doubleFloat,tspan ; solver=:euler, tstep=1e-3, linsolve=SparspakFactorization())
 
     return (sum(sol_DiffEq.u[end]),sum(sol_DiffEq_banded.u[end]),eltype(eltype(sol_DiffEq_doubleFloat.u)), 
@@ -88,10 +88,10 @@ end
 
 function test()
     testval_diffEq        = 3.7210048739504296
-    testval_diffEq_banded = 3.72100487395043
+    testval_diffEq_banded = 3.702806314278916
 
     testval_euler         = 3.721004873950427
-    testval_euler_banded  = 3.7210048739504265
+    testval_euler_banded  = 3.7210048106612303
 
     approx_diffEq, approx_diffEq_banded, sol_diffEq_doubleFloat, approx_euler_vec, approx_euler, approx_euler_banded, sol_euler_doubleFloat = main()
 
