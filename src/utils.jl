@@ -194,7 +194,7 @@ Base.@kwdef struct Params
     Defines a time step (either pass a `Float64` or a `Vector`) when using the implicit Euler method. 
     When set to `tstep=Inf`, it solves the stationary version of the problem.
     """
-    tstep::Union{Float64,Vector{Float64}} = 1e-3
+    tstep::Union{Float64,Vector{Float64}} = 1e-2
 
     """
     Flag, returns with the solution, a list of 1d-array with the history from the newton solver.
@@ -209,7 +209,7 @@ Base.@kwdef struct Params
     """
     Choice of the solver for the LSE in the newton method, see [`LinearSolve.jl`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/).
     """
-    linSolver::Union{LinearSolve.SciMLLinearSolveAlgorithm, Nothing} = KLUFactorization()
+    linsolve::Union{LinearSolve.SciMLLinearSolveAlgorithm, Nothing} = KLUFactorization()
 
     """
     Maximum number of iterations for the Newton solver.
@@ -632,8 +632,10 @@ function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params)
 
     if params.sparsity == :sparseArrays
         Tjac = SparseMatrixCSC{elTv, Ti}
-    else
+    elseif params.sparsity == :banded
         Tjac = BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}
+    else
+        throw("Error: Invalid sparsity pattern selected. Please choose from the available options: :sparseArrays, :banded")
     end
 
     # Choosing how to initialize the jacobian with sparsity pattern

@@ -4,8 +4,10 @@
 
 One way to improve the performance of the package when solving system of PDEs, is to use the [StaticArrays.jl](https://github.com/JuliaArrays/StaticArrays.jl) package to define the PDE formulation.
 
-This package allows you to use arrays that are stored on the stack rather than on the heap, which eliminates the need for memory allocation when defining and evaluating the problem.
-In contrast, when using arrays to define the problem, it creates heap-allocations for every interval where the function is evaluated.
+This package allows you to use arrays that are stored on the stack rather than on the heap, which 
+eliminates the need for memory allocation when defining and evaluating the problem.
+In contrast, when using arrays to define the problem, it creates heap-allocations for every interval 
+where the function is evaluated.
 
 ## Example
 
@@ -49,8 +51,7 @@ xmesh = collect(range(0,1,length=21))
 tspan = (0,10)
 
 # Define Keyword Arguments
-params = SkeelBerzins.Params()
-params.tstep = 1e-2
+params = SkeelBerzins.Params(tstep=1e-2)
 
 # Solve
 sol = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan ; params=params)

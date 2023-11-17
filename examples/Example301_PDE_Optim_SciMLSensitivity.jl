@@ -4,10 +4,10 @@
 # Example 301: PDE Constrained Optimization
 
 This example is used to show the integration of the package in the SciML ecosystem.
-For more details on the problem, look at the following link: https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/ .
+For more details on the problem, look at the original formulation: https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/ .
 =#
 
-module Example301_PDEOptim_SciMLSensitivity
+module Example301_PDE_Optim_SciMLSensitivity
 using SkeelBerzins, DifferentialEquations
 
 using DelimitedFiles

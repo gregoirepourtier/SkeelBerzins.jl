@@ -16,47 +16,42 @@ using SkeelBerzins
 
 function main()
 
-	N_x = 21
-		
-	L = 1
-	T = 1
+    N_x = 21
+        
+    L = 1
+    T = 1
 
-	x_mesh = collect(range(0,L,length=N_x))
-	tspan  = (0, T)
+    x_mesh = collect(range(0,L,length=N_x))
 
-	m = 0
+    m = 0
 
-	function pdefun_test(x,t,u,dudx)
-		c = 1
-		f = dudx 
-		s = 1
-		
-		return c,f,s
-	end
+    function pdefun(x,t,u,dudx)
+        c = 1
+        f = dudx 
+        s = 1
+        
+        return c,f,s
+    end
 
-	function icfun_test(x)
-		u0 = 0.1
-		
-		return u0
-	end
-
-
-	function bdfun_test(xl,ul,xr,ur,t)
-		pl = ul - 0.1
-		ql = 0
-		pr = ur - 0.1
-		qr = 0
-
-		return pl,ql,pr,qr
-	end
+    function icfun(x)
+        u0 = 0.1
+        
+        return u0
+    end
 
 
-	params = SkeelBerzins.Params()
-	params.tstep = Inf
-	sol = pdepe(m,pdefun_test,icfun_test,bdfun_test,x_mesh,tspan ; params=params)
-	
+    function bdfun(xl,ul,xr,ur,t)
+        pl = ul - 0.1
+        ql = 0
+        pr = ur - 0.1
+        qr = 0
 
-	return sum(sol)
+        return pl,ql,pr,qr
+    end
+
+    sol = pdepe(m,pdefun,icfun,bdfun,x_mesh)
+
+    return sum(sol)
 end
 
 function test()

@@ -73,7 +73,7 @@ function main()
 
 	pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params_diffEq)
 	problem = DifferentialEquations.ODEProblem(pb)
-	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
+	sol_diffEq = DifferentialEquations.solve(problem,Tsit5())
 
 	params_euler = SkeelBerzins.Params(tstep=1e-4)
 
@@ -84,11 +84,11 @@ end
 
 
 function test()
-    testval_diffEq = 46.66666666671536
+	testval_diffEq = 46.66666666671536
 	testval_euler  = 46.66666666678757
 	approx_diffEq, approx_euler = main()
-
-    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
+	
+	approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 

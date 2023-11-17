@@ -23,7 +23,8 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     du = reshape(du,(pb.npde,pb.Nx))
     u  = reshape(u,(pb.npde,pb.Nx))
 
-    # Evaluate the boundary conditions of the problem and interpolate u and du/dx for the first interval of the discretization
+    # Evaluate the boundary conditions of the problem and interpolate u and du/dx for the first 
+    # interval of the discretization
     if pb.npde==1
         pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1,1], pb.xmesh[end], u[1,end], t)
 
@@ -57,7 +58,8 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     else # Regular Case
         for i ∈ 1:pb.npde
             if ql[i] ≠ 0 && cl[i] ≠ 0
-                du[i,1] = (pl[i] + ql[i]/pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m)*fl[i] + frac*sl[i])) / (ql[i]/(pb.xmesh[1]^(pb.m))*frac*cl[i])
+                du[i,1] = (pl[i] + ql[i]/pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m)*fl[i] + frac*sl[i])) / 
+                          (ql[i]/(pb.xmesh[1]^(pb.m))*frac*cl[i])
             elseif ql[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
                 du[i,1] = (pl[i] + ql[i]/pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m)*fl[i] + frac*sl[i]))
             else # Dirichlet boundary conditions
@@ -83,7 +85,8 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         if pb.singular
             for j ∈ 1:pb.npde
                 if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j,i] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j])
+                    du[j,i] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j]) / 
+                              (frac1*cr[j] + frac2*cl[j])
                 else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
                     du[j,i] = (pb.ζ[i]^(pb.m+1)/pb.ξ[i] *fr[j] - pb.ζ[i-1]^(pb.m+1)/pb.ξ[i-1] *fl[j] + frac1*sr[j] + frac2*sl[j])
                 end
@@ -91,7 +94,8 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         else # Regular Case
             for j ∈ 1:pb.npde
                 if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j,i] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j]) / (frac1*cr[j] + frac2*cl[j])
+                    du[j,i] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j]) / 
+                              (frac1*cr[j] + frac2*cl[j])
                 else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
                     du[j,i] = (pb.ξ[i]^(pb.m)*fr[j] - pb.ξ[i-1]^(pb.m)*fl[j] + frac1*sr[j] + frac2*sl[j])
                 end
@@ -109,7 +113,8 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     if pb.singular
         for i ∈ 1:pb.npde
             if qr[i] ≠ 0 && cl[i] ≠ 0
-                du[i,end] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i])) / (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i])
+                du[i,end] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i])) / 
+                            (-qr[i]/pb.xmesh[end]^(pb.m) * frac*cl[i])
             elseif qr[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
                 du[i,end] = (pr[i] + qr[i]/pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m+1)/pb.ξ[end] *fl[i] - frac*sl[i]))
             else
@@ -135,10 +140,9 @@ end
 """
     mass_matrix(problem)
 
-Assemble the diagonal mass matrix M of the system of differential equations 
-when solving a problem with at least one parabolic PDE.
-The coefficients from M either take the value 0 or 1 since it is scaled in the 
-difference equations in the right-hand side.
+Assemble the diagonal mass matrix M of the system of differential equations when solving a problem 
+with at least one parabolic PDE. The coefficients from M either take the value 0 or 1 since it is 
+scaled in the difference equations in the right-hand side.
 
 The entries of the matrix are set to 0 when the corresponding equation of the system is elliptic
 or the boundary condition is pure Dirichlet leading to solve a Differential-Algebraic system of Equations.

@@ -14,7 +14,7 @@ isdefined(Base, :get_extension) ? (using DifferentialEquations) : (using ..Diffe
     ODEFunction(problem)
 
 Generate an [ODEFunction](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEFunction) 
-from the spatial discretization derived in the [`assemble!`](@ref) function. 
+from the spatial discretization derived in the [`SkeelBerzins.assemble!`](@ref) function. 
 It is expressed as a [mass matrix ODE](https://docs.sciml.ai/DiffEqDocs/stable/tutorials/dae_example/) 
 if the mass matrix is different from the identity matrix or as a simple 
 [system of ODEs](https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#stiff) otherwise 
@@ -38,12 +38,10 @@ end
 
 Generate an [ODEProblem](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEProblem)
 from the [`ODEFunction`](@ref) which then can be solved by using the 
-[solve](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts
-/#CommonSolve.solve-Tuple{SciMLBase.AbstractDEProblem,%20Vararg{Any}}) method.
+[solve](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/) method.
 
 Input arguments:
 - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
-- `callback`: (optional) see [callback](https://docs.sciml.ai/DiffEqDocs/stable/features/callback_functions/).
 """
 function DifferentialEquations.ODEProblem(pb::SkeelBerzins.ProblemDefinition)
     odefunction=DifferentialEquations.ODEFunction(pb)

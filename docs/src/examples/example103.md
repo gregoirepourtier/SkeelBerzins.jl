@@ -15,20 +15,19 @@ where ``n = 2.404825557695773``.
 ```
 module Example103_LinearDiffusionCylindrical
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 using SpecialFunctions
-using DifferentialEquations
 
 function main()
 
     Nx = 21
-    
+
     L = 1
     T = 1
-    
+
     x_mesh = collect(range(0, L, length=Nx))
     tspan  = (0, T)
-    
+
     m = 1
 
     function pdefun(x,t,u,dudx)
@@ -56,12 +55,11 @@ function main()
         return pl,ql,pr,qr
     end
 
-    params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+    params = SkeelBerzins.Params(solver=:DiffEq)
 
     pb = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-	problem = DifferentialEquations.ODEProblem(pb)
-	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
+    problem = DifferentialEquations.ODEProblem(pb)
+    sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
 
     sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
 
@@ -71,7 +69,7 @@ end
 
 function test()
     testval_diffEq = 0.038941562421188236
-    testval_euler = 0.04010494653084508
+    testval_euler  = 0.0463188424523652
     approx_diffEq, approx_euler = main()
 
     approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler

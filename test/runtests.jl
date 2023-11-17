@@ -3,7 +3,7 @@ using Test
 
 modname(fname)=splitext(basename(fname))[1]
 
-#
+# Credit: https://github.com/j-fu/VoronoiFVM.jl/blob/master/test/runtests.jl
 # Include all Julia files in `testdir` whose name starts with `prefix`,
 # Each file `prefixModName.jl` must contain a module named
 # `prefixModName` which has a method test() returning true

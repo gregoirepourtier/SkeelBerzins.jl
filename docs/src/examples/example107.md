@@ -15,20 +15,20 @@ u(x,0) = x^2
 ```
 module Example107_LinearDiffusionSpherical
 
-using SkeelBerzins
+using SkeelBerzins, DifferentialEquations
 using LinearAlgebra
-using DifferentialEquations
+
 
 function main()
 
     Nx = 21
-    
+
     L = 1
     T = 0.8
-    
+
     x_mesh = collect(range(0, L, length=Nx))
     tspan  = (0.0, T)
-    
+
     m = 2
 
     function pdefun(x,t,u,dudx)
@@ -50,16 +50,15 @@ function main()
         ql = 0 # ignored by solver since m=1
         pr = ur-(1+6*t)
         qr = 0
-    
+
         return pl,ql,pr,qr
     end
 
-    params = SkeelBerzins.Params()
-	params.solver = :DiffEq
+    params = SkeelBerzins.Params(solver=:DiffEq)
 
-    pb      = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-	problem = DifferentialEquations.ODEProblem(pb)
-	sol_diffEq     = DifferentialEquations.solve(problem,Rosenbrock23())
+    pb         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
+    problem    = DifferentialEquations.ODEProblem(pb)
+    sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
 
     sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
 
@@ -70,7 +69,7 @@ end
 
 
 function test()
-	main()
+    main()
 end
 
 end

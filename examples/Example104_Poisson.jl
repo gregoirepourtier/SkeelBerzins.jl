@@ -59,8 +59,7 @@ end
 
 function test()
     testval=3.7624999999999997
-	sol = main()
-    sol ≈ testval
+	main() ≈ testval
 end
 
 end

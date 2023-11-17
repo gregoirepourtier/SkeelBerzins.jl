@@ -168,8 +168,7 @@ xmesh = collect(range(0,1,length=21))
 tspan = (0,1)
 
 # Define Keyword Arguments
-params = SkeelBerzins.Params()
-params.solver = :DiffEq
+params = SkeelBerzins.Params(solver=:DiffEq)
 
 # Solve
 problem_data = pdepe(m,pdefunction,icfunction,bdfunction,xmesh,tspan ; params=params)

@@ -2,9 +2,10 @@ using Documenter
 using SkeelBerzins, DifferentialEquations
 
 makedocs(
-    modules = [SkeelBerzins],
+    modules = [SkeelBerzins, Base.get_extension(SkeelBerzins, :SkeelBerzinsDiffEq)],
     sitename = "SkeelBerzins.jl",
     doctest = false, clean = true,
+    warnonly = true,
     format = Documenter.HTML(),
     authors = "Grégoire Pourtier",
     pages = ["Home" => "index.md",

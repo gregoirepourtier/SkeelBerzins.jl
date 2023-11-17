@@ -1,15 +1,16 @@
 # Example 301: PDE Constrained Optimization
 
 This example is used to show the integration of the package in the SciML ecosystem.
-For more details on the problem, look at the following link: [https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/](https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/).
+For more details on the problem, look at the original formulation: [https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/](https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/).
 
 
 ```
-module Example301_SciMLSensitivityIntegration
+module Example301_PDE_Optim_SciMLSensitivity
 using SkeelBerzins, DifferentialEquations
 
 using DelimitedFiles
 using Optimization, OptimizationPolyalgorithms, OptimizationOptimJL, SciMLSensitivity
+
 
 function f(p)
 
@@ -46,12 +47,11 @@ function f(p)
         pl,ql,pr,qr
     end
 
-    params_pdepe = SkeelBerzins.Params()
-    params_pdepe.solver = :DiffEq
+    params_pdepe = SkeelBerzins.Params(solver=:DiffEq)
 
-    pb = pdepe(m,pdefun,icfun,bcfun,collect(x),tspan ; params=params_pdepe)
+    pb   = pdepe(m,pdefun,icfun,bcfun,collect(x),tspan ; params=params_pdepe)
     prob = DifferentialEquations.ODEProblem(pb)
-    sol = DifferentialEquations.solve(prob,RadauIIA3(linsolve = SparspakFactorization()), dt=dt,saveat=t)
+    sol  = DifferentialEquations.solve(prob,RadauIIA3(linsolve=SparspakFactorization()), dt=dt,saveat=t)
 
     sol
 end
