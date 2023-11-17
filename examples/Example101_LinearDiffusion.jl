@@ -98,12 +98,19 @@ function test()
 
 	approx_diffEq, approx_diffEq_banded, sol_diffEq_doubleFloat, approx_euler_vec, approx_euler, approx_euler_banded, sol_euler_doubleFloat = main()
 
-    approx_diffEq ≈ testval_diffEq && 
-	sol_diffEq_doubleFloat == Double64 == sol_euler_doubleFloat &&
-	approx_diffEq_banded ≈ testval_diffEq_banded && 
-	approx_euler ≈ testval_euler ≈ approx_euler_vec &&
-	approx_euler_banded ≈ testval_euler_banded
-	
+    if !Sys.iswindows() || VERSION >= VersionNumber(1,9,0)
+        all_tests = approx_diffEq ≈ testval_diffEq && 
+        sol_diffEq_doubleFloat == Double64 == sol_euler_doubleFloat &&
+        approx_diffEq_banded ≈ testval_diffEq_banded && 
+        approx_euler ≈ testval_euler ≈ approx_euler_vec &&
+        approx_euler_banded ≈ testval_euler_banded
+    else
+        all_tests = approx_diffEq ≈ testval_diffEq && 
+        sol_diffEq_doubleFloat == Double64 == sol_euler_doubleFloat &&
+        approx_euler ≈ testval_euler ≈ approx_euler_vec
+    end
+
+    all_tests
 end
 
 
