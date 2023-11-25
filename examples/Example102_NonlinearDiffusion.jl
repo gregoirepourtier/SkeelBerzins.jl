@@ -1,9 +1,9 @@
-#= 
+#=
 
 
 # Example 102: Nonlinear Diffusion 1D
 
-Solve the nonlinear diffusion equation
+Solve the following nonlinear diffusion equation
 ```math
 u_t  = (2uu_x)_{x}
 ```
@@ -82,13 +82,14 @@ function main()
 	return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
 end
 
+using Test
 
-function test()
+function runtests()
 	testval_diffEq = 46.66666666671536
 	testval_euler  = 46.66666666678757
 	approx_diffEq, approx_euler = main()
 	
-	approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
+	@test approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 

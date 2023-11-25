@@ -3,7 +3,7 @@
 
 # Example 101: Linear Diffusion 1D
 
-Solve the linear diffusion equation
+Solve the following linear diffusion equation
 ```math
 u_t  = u_{xx}
 ```
@@ -11,7 +11,7 @@ for $x \in \Omega=(0,1)$ with homogeneous Neumann boundary conditions.
 
 We take for our problem the following initial condition:
 ```math
-u(x,0) = exp(-100*(x-0.25)^2)
+u(x,0) = \exp(-100*(x-0.25)^2)
 ```
 =#
 
@@ -96,7 +96,9 @@ function main()
     end
 end
 
-function test()
+using Test
+
+function runtests()
     testval_diffEq        = 3.7210048739504296
     testval_diffEq_banded = 3.702806314278916
 
@@ -119,7 +121,7 @@ function test()
         approx_euler ≈ testval_euler ≈ approx_euler_vec
     end
 
-    all_tests
+    @test all_tests
 end
 
 

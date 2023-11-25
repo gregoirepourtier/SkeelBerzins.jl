@@ -1,13 +1,13 @@
 #=
 
 
-# Example 301: PDE Constrained Optimization
+# Example 301: PDE Optim SciML Sensitivity
 
 This example is used to show the integration of the package in the SciML ecosystem.
-For more details on the problem, look at the original formulation: https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/ .
+For more details on the problem, look at the [original formulation](https://docs.sciml.ai/SciMLSensitivity/stable/examples/pde/pde_constrained/) .
 =#
 
-module Example301_PDE_Optim_SciMLSensitivity
+module Example301_PDEOptimSciMLSensitivity
 using SkeelBerzins, DifferentialEquations
 
 using DelimitedFiles
@@ -16,13 +16,13 @@ using Optimization, OptimizationPolyalgorithms, OptimizationOptimJL, SciMLSensit
 
 function f(p)
 
-    # Problem setup parameters:
+    ## Problem setup parameters:
     m = 0
     Lx = 10.0
     x  = 0.0:0.01:Lx
     dx = x[2] - x[1]
 
-    # Problem Parameters
+    ## Problem Parameters
     dt       = 0.40*dx^2    # CFL condition
     t0, tMax = 0.0 ,1000*dt
     tspan    = (t0,tMax)
@@ -62,14 +62,14 @@ function main()
     p       = [1.0,1.0] # True solution parameters
     sol_exact = f(p)
 
-    # Building the Prediction Model
+    ## Building the Prediction Model
     ps  = [0.1, 0.2]  # Initial guess for model parameters
     function predict(θ)
         sol = f(θ)
         Array(sol)
     end
 
-    # Defining Loss function
+    ## Defining Loss function
     function loss(θ)
         pred = predict(θ)
         l = predict(θ)  - sol_exact
@@ -81,7 +81,7 @@ function main()
     PARS  = []     # parameters accumulator
 
     callback = function (θ,l,pred) # callback function to observe training
-        # display(l)
+        ## display(l)
         append!(PRED, [pred])
         append!(LOSS, l)
         append!(PARS, [θ])
@@ -98,9 +98,11 @@ function main()
     return res.u
 end
 
-function test()
+using Test
+
+function runtests()
     testval = [1.0,1.0]
-	main() ≈ testval
+	@test main() ≈ testval
 end
 
 end

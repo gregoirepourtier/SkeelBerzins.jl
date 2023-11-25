@@ -1,32 +1,55 @@
 using Documenter
 using SkeelBerzins, DifferentialEquations
+using ExampleJuggler
 
-makedocs(
-    modules = [SkeelBerzins, Base.get_extension(SkeelBerzins, :SkeelBerzinsDiffEq)],
-    sitename = "SkeelBerzins.jl",
-    doctest = false, clean = true,
-    warnonly = true,
-    format = Documenter.HTML(),
-    authors = "Grégoire Pourtier",
-    pages = ["Home" => "index.md",
-             "Manual" => ["Problem Definition" => "problem_definition.md",
-                          "Solvers" => "solvers.md",
-                          "Achieve performance" => "performance.md",
-                          "Public and Private APIs" => "public_private_APIs.md"
-                         ],
-             "Examples" => ["101: Linear Diffusion equation" =>"examples/example101.md",
-                            "102: Nonlinear Diffusion equation" =>"examples/example102.md",
-                            "103: Linear Diffusion equation in cylindrical coordinates" =>"examples/example103.md",
-                            "104: Poisson equation" =>"examples/example104.md",
-                            "105: Stationary nonlinear diffusion equation" =>"examples/example105.md",
-                            "106: System of Reaction-Diffusion equations" =>"examples/example106.md",
-                            "107: Linear Diffusion equation in spherical coordinates" =>"examples/example107.md",
-                            "201: Interpolation of Partial Derivatives" =>"examples/example201.md",
-                            "301: PDE Constrained Optimization" =>"examples/example301.md"
-                            ]
-            ]
-)
 
-deploydocs(
-    repo = "github.com/gregoirepourtier/SkeelBerzins.jl.git"
-)
+function create_doc()
+    ExampleJuggler.verbose!(true)
+
+    cleanexamples()
+
+    exampledir = joinpath(@__DIR__, "..", "examples")
+
+    modules = filter(ex -> splitext(ex)[2] == ".jl", basename.(readdir(exampledir)))
+    module_examples = @docmodules(exampledir, modules)
+
+    module_examples_reformated = Array{Pair{String,String}}(undef, length(module_examples))
+    for i in eachindex(module_examples)
+        mod = module_examples[i]
+        tmp_new = tmp = replace(replace(first(mod), "_" => ": " ; count=1), "Example" => "")
+        cpt_spaces = 0
+        for i in 2:length(tmp[2:end-1])
+            if isuppercase(tmp[i]) && islowercase(tmp[i+1])
+                tmp_new = tmp_new[1:i-1+cpt_spaces]*" "*tmp[i:end]
+                cpt_spaces += 1
+            end
+        end
+        module_examples_reformated[i] = Pair(tmp_new, mod[2]) 
+    end
+
+    makedocs(; modules = [SkeelBerzins, Base.get_extension(SkeelBerzins, :SkeelBerzinsDiffEq)],
+             sitename = "SkeelBerzins.jl",
+             checkdocs = :all,
+             doctest = false, clean = false,
+             warnonly = true,
+             format = Documenter.HTML(; mathengine = MathJax3()),
+             authors = "G. Pourtier",
+             repo = "https://github.com/gregoirepourtier/SkeelBerzins.jl",
+             pages = ["Home" => "index.md",
+                      "Manual" => ["Problem Definition" => "problem_definition.md",
+                                   "Solvers" => "solvers.md",
+                                   "Achieve performance" => "performance.md",
+                                   "Public and Private APIs" => "public_private_APIs.md"
+                                  ],
+                      "Examples" => module_examples_reformated
+                    ])
+
+    cleanexamples()
+
+    deploydocs(
+        repo = "github.com/gregoirepourtier/SkeelBerzins.jl.git"
+    )
+
+end
+
+create_doc()
