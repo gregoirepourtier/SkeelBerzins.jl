@@ -32,7 +32,7 @@ function create_doc()
              checkdocs = :all,
              doctest = false, clean = false,
              warnonly = true,
-             format = Documenter.HTML(; mathengine = MathJax3()),
+             format = Documenter.HTML(; mathengine = MathJax3(), repolink = "https://github.com/gregoirepourtier/SkeelBerzins.jl"),
              authors = "G. Pourtier",
              repo = "https://github.com/gregoirepourtier/SkeelBerzins.jl",
              pages = ["Home" => "index.md",
