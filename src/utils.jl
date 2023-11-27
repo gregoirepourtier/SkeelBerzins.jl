@@ -103,9 +103,9 @@ Structure storing the problem definition.
 
 $(TYPEDFIELDS)
 """
-struct ProblemDefinition{ T, Tv<:AbstractVector, Ti<:Integer, Tm<:Number, TMat<:AbstractMatrix, pdeFunction<:Function, 
-                                                                                                icFunction<:Function, 
-                                                                                                bdFunction<:Function }
+struct ProblemDefinition{ T, Tv<:AbstractVector, Ti<:Integer, Tm<:Number, elTv <: Number, pdeFunction<:Function, 
+                                                                                          icFunction<:Function, 
+                                                                                          bdFunction<:Function }
     """
     Number of unknowns
     """
@@ -139,7 +139,7 @@ struct ProblemDefinition{ T, Tv<:AbstractVector, Ti<:Integer, Tm<:Number, TMat<:
     """
     Jacobi matrix
     """
-    jac::TMat
+    jac::Union{SparseMatrixCSC{elTv, Ti}, BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}}
 
     """
     Evaluation of the initial condition
@@ -641,7 +641,7 @@ function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params)
     # Choosing how to initialize the jacobian with sparsity pattern
     jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
 
-    pb = ProblemDefinition{npde, Tv, Ti, Tm, Tjac, T1, T2, T3}(
+    pb = ProblemDefinition{npde, Tv, Ti, Tm, elTv,T1, T2, T3}(
         npde,
         Nx,
         xmesh,
