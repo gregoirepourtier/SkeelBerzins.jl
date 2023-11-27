@@ -1,12 +1,12 @@
-#= 
+#=
 
 
-# Example 103: Linear Diffusion Problem in Cylindrical Coordinates
+# Example 103: Linear Diffusion Equation in Cylindrical Coordinates
 
 Solve the following problem
 ```math
 u_t = \frac{1}{x}(xu_x)_x
-````
+```
 for $x \in \Omega=(0,1)$ with the imposed symmetry condition in $x=0$ (since use of cylindrical coordinates)
 and Dirichlet condition in $x=1$.
 
@@ -70,13 +70,14 @@ function main()
     return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
 end
 
+using Test
 
-function test()
+function runtests()
     testval_diffEq = 0.038941562421188236
     testval_euler  = 0.0463188424523652
     approx_diffEq, approx_euler = main()
 
-    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
+    @test approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 end

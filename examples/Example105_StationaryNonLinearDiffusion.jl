@@ -1,18 +1,20 @@
 #=
 
 
-# Example 105: Nonlinear Diffusion Equation
+# Example 105: Stationary Nonlinear Diffusion equation
 
-Solve the nonlinear diffusion equation
+Solve the following nonlinear diffusion equation:
 ```math
--(2uu_x)_{x} = 1 \\
-u(0) = 0.1 \\
-u(1) = 0.1 \\
-````
+\begin{aligned}
+-(2uu_x)_{x} &= 1 \\
+u(0) &= 0.1 \\
+u(1) &= 0.1 .
+\end{aligned}
+```
 for $x \in \Omega=(0,1)$ with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
 =#
 
-module Example105_StationaryNonLinearDiffusion
+module Example105_StationaryNonlinearDiffusion
 
 using SkeelBerzins
 
@@ -57,10 +59,12 @@ function main()
 	return sum(sol)
 end
 
-function test()
+using Test
+
+function runtests()
     testval=6.025575019008793
     sol = main()
-    sol ≈ testval
+    @test sol ≈ testval
 end
 
 end

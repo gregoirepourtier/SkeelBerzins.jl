@@ -3,9 +3,9 @@
 
 # Example 107: Linear Diffusion Problem in Spherical Coordinates
 
-Solve the following problem
+Solve the following problem:
 ```math
-u_t = \frac{1}{x^2}(x^2 u_x)_x \\
+u_t = \frac{1}{x^2}(x^2 u_x)_x
 ```
 for $x \in \Omega=(0,1)$ with the imposed symmetry condition in $x=0$ (since use of spherical coordinates)
 and Dirichlet condition in $x=1$.
@@ -70,9 +70,10 @@ function main()
     return norm(sol_diffEq.u[end] - exact.(x_mesh,T)) < 1.0e-14 && norm(sol_euler.u[end] - exact.(x_mesh,T)) < 1.0e-2
 end
 
+using Test
 
-function test()
-	main()
+function runtests()
+	@test main()
 end
 
 end

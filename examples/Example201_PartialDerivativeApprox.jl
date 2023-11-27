@@ -3,7 +3,7 @@
 
 # Example 201: Interpolation of Partial Derivatives
 
-Solve the following problem
+Solve the following problem:
 ```math
 u_t = (Du_x)_x - (D\frac{η}{L})u_x
 ```
@@ -104,11 +104,13 @@ function main()
     return err1, err2, err3, err4
 end
 
-function test()
+using Test
+
+function runtests()
     testval_diffEq = 0.07193510317047391
     testval_euler  = 0.6621164947313215
     err1,err2,err3,err4 = main()
-    err1 ≈ err2 ≈ testval_diffEq && err3 ≈ err4 ≈ testval_euler
+    @test err1 ≈ err2 ≈ testval_diffEq && err3 ≈ err4 ≈ testval_euler
 end
 
 end

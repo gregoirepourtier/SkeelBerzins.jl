@@ -1,14 +1,16 @@
-#= 
+#=
 
 
 # Example 104: 1D Poisson equation 
 
-Solve the 1D Poisson equation
+Solve the following 1D Poisson equation:
 ```math
--u_{xx} = 1 \\
-u(0)=0.1 \\
-u(1)=0.1 \\
-````
+\begin{aligned}
+-u_{xx} &= 1\\
+u(0) &= 0.1\\
+u(1) &= 0.1.
+\end{aligned}
+```
 for $x \in \Omega=(0,1)$ with inhomogeneous Dirichlet boundary conditions using the implicit Euler method (internal method).
 =#
 
@@ -57,9 +59,11 @@ function main()
 	return sum(sol)
 end
 
-function test()
+using Test
+
+function runtests()
     testval=3.7624999999999997
-	main() ≈ testval
+	@test main() ≈ testval
 end
 
 end

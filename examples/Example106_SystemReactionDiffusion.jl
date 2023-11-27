@@ -1,23 +1,27 @@
 #=
 
 
-# Example 106: Reaction-Diffusion System
+# Example 106: System of Reaction-Diffusion PDEs
 
-Solve the system of PDEs
+Solve the following system of PDEs:
 ```math
-\partial_t u_1 = 0.5 \partial^2_x u_1 - u_1 + u_2 = 0 \\
-\partial_t u_2 = 0.1 \partial^2_x u_2 + u_1 - u_2 = 0 \\
-u_1(0,t) = 1 \\
-\partial_x u_1(1,t) = 0 \\
-\partial_x u_2(0,t) = 0 \\
-u_2(0,t) = 0
-````
+\begin{aligned}
+\partial_t u_1 &= 0.5 \partial^2_x u_1 - u_1 + u_2 \\
+\partial_t u_2 &= 0.1 \partial^2_x u_2 + u_1 - u_2 \\
+u_1(0,t) &= 1 \\
+\partial_x u_1(1,t) &= 0 \\
+\partial_x u_2(0,t) &= 0 \\
+u_2(0,t) &= 0
+\end{aligned}
+```
 for $x \in \Omega=(0,10)$.
 
-We take for our problem the following initial condition:
+We take for our problem the following initial conditions:
 ```math
-u_1(x,0) = 0 \\
-u_2(x,0) = 0
+\begin{aligned}
+u_1(x,0) &= 0 \\
+u_2(x,0) &= 0
+\end{aligned}
 ```
 =#
 
@@ -76,13 +80,15 @@ function main()
 	return (sum(sol_diffEq.u[end]),sum(sol_euler.u[end]))
 end
 
-function test()
+using Test
+
+function runtests()
     testval_diffEq = 29.035923566365785
 	testval_euler  = 29.034702247833415
 
     approx_diffEq, approx_euler = main()
 
-    approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
+    @test approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
 end
 
 end
