@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>201:  Partial Derivative Approx · SkeelBerzins.jl</title><meta name="title" content="201:  Partial Derivative Approx · SkeelBerzins.jl"/><meta property="og:title" content="201:  Partial Derivative Approx · SkeelBerzins.jl"/><meta property="twitter:title" content="201:  Partial Derivative Approx · SkeelBerzins.jl"/><meta name="description" content="Documentation for SkeelBerzins.jl."/><meta property="og:description" content="Documentation for SkeelBerzins.jl."/><meta property="twitter:description" content="Documentation for SkeelBerzins.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SkeelBerzins.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../../problem_definition/">Problem Definition</a></li><li><a class="tocitem" href="../../solvers/">Solvers</a></li><li><a class="tocitem" href="../../performance/">Achieve performance</a></li><li><a class="tocitem" href="../../public_private_APIs/">Public and Private APIs</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../Example101_LinearDiffusion/">101:  Linear Diffusion</a></li><li><a class="tocitem" href="../Example102_NonlinearDiffusion/">102:  Nonlinear Diffusion</a></li><li><a class="tocitem" href="../Example103_LinearDiffusionCylindrical/">103:  Linear Diffusion Cylindrical</a></li><li><a class="tocitem" href="../Example104_Poisson/">104:  Poisson</a></li><li><a class="tocitem" href="../Example105_StationaryNonLinearDiffusion/">105:  Stationary Non Linear Diffusion</a></li><li><a class="tocitem" href="../Example106_SystemReactionDiffusion/">106:  System Reaction Diffusion</a></li><li><a class="tocitem" href="../Example107_LinearDiffusionSpherical/">107:  Linear Diffusion Spherical</a></li><li class="is-active"><a class="tocitem" href>201:  Partial Derivative Approx</a></li><li><a class="tocitem" href="../Example301_PDEOptimSciMLSensitivity/">301: PDE Optim SciML Sensitivity</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>201:  Partial Derivative Approx</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>201:  Partial Derivative Approx</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/gregoirepourtier/SkeelBerzins.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/gregoirepourtier/SkeelBerzins.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Example-201:-Interpolation-of-Partial-Derivatives"><a class="docs-heading-anchor" href="#Example-201:-Interpolation-of-Partial-Derivatives">Example 201: Interpolation of Partial Derivatives</a><a id="Example-201:-Interpolation-of-Partial-Derivatives-1"></a><a class="docs-heading-anchor-permalink" href="#Example-201:-Interpolation-of-Partial-Derivatives" title="Permalink"></a></h1><p>Solve the following problem:</p><p class="math-container">\[u_t = (Du_x)_x - (D\frac{η}{L})u_x\]</p><p>for <span>$x \in \Omega=(0,1)$</span> with homogeneous Dirichlet boundary conditions for <span>$x=0$</span> and <span>$x=1$</span> using the DAE solvers of the DifferentialEquations.jl package.</p><p>We take for our problem the following initial condition:</p><p class="math-container">\[u(x,0) = (K\frac{L}{D})\frac{(1 - exp(-η*(1 - \frac{x}{L})))}{η}\]</p><p>Then the function <code>pdeval</code> interpolates in space the obtained solution and its partial derivative.</p><pre><code class="language-julia hljs">module Example201_PartialDerivativeApprox
+
+using SkeelBerzins, DifferentialEquations
+using LinearAlgebra
+
+function main()
+
+    n = 50
+
+    L = 1
+    D = 0.1
+    eta = 10
+    K = 1
+    Ip = 1
+
+    function pdefun(x,t,u,dudx)
+        c = 1
+        f = D*dudx
+        s = -(D*eta/L)*dudx
+
+        c,f,s
+    end
+
+    icfun(x) = (K*L/D)*(1 - exp(-eta*(1 - x/L)))/eta
+
+    function bcfun(xl,ul,xr,ur,t)
+        pl = ul
+        ql = 0
+        pr = ur
+        qr = 0
+
+        pl,ql,pr,qr
+    end
+
+    m = 0
+    xmesh = collect(range(0,1,length=n))
+    tspan = (0,1)
+
+    params=SkeelBerzins.Params(solver=:DiffEq)
+
+    pb         = pdepe(m,pdefun,icfun,bcfun,xmesh,tspan ; params=params)
+    problem    = DifferentialEquations.ODEProblem(pb)
+    sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23(),saveat=1/(n-1))
+
+    sol_euler, pb_data_euler = pdepe(m,pdefun,icfun,bcfun,xmesh,tspan ; data=true, tstep=1/(n-1))
+
+    @assert sol_euler.t == sol_diffEq.t &quot;error: different time steps&quot;
+
+    function analytical(t)
+        It = 0
+        for n ∈ 1:40
+            m = (n*pi)^2 + 0.25*eta^2
+            It = It + ((n*pi)^2 / m)* exp(-(D/L^2)*m*t)
+        end
+        It = 2*Ip*((1 - exp(-eta))/eta)*It
+    end
+
+
+    tmesh = collect(range(0,1,length=length(sol_diffEq.t)))
+
+    seriesI = analytical.(tmesh)
+
+    u1,dudx1    = (zeros(length(sol_diffEq.t)),zeros(length(sol_diffEq.t)))
+    u2,dudx2    = (copy(u1),copy(dudx1))
+    u3,dudx3    = (copy(u1),copy(dudx1))
+    u4,dudx4    = (copy(u1),copy(dudx1))
+    for t ∈ 1:n
+        u1[t], dudx1[t] = pdeval(pb.m,pb.xmesh,sol_diffEq.u[t],0,pb)
+        u2[t], dudx2[t] = sol_diffEq(0,sol_diffEq.t[t],pb)
+        u3[t], dudx3[t] = pdeval(pb_data_euler.m,pb_data_euler.xmesh,sol_euler.u[t],0,pb_data_euler)
+        u4[t], dudx4[t] = sol_euler(0,sol_euler.t[t],pb_data_euler)
+    end
+
+    dudx1 .= (Ip*D/K) .* dudx1
+    dudx2 .= (Ip*D/K) .* dudx2
+    dudx3 .= (Ip*D/K) .* dudx3
+    dudx4 .= (Ip*D/K) .* dudx4
+
+    err1 = norm(seriesI[2:n] - dudx1[2:n], Inf)
+    err2 = norm(seriesI[2:n] - dudx2[2:n], Inf)
+    err3 = norm(seriesI[2:n] - dudx3[2:n], Inf)
+    err4 = norm(seriesI[2:n] - dudx4[2:n], Inf)
+
+    return err1, err2, err3, err4
+end
+
+using Test
+
+function runtests()
+    testval_diffEq = 0.07193510317047391
+    testval_euler  = 0.6621164947313215
+    err1,err2,err3,err4 = main()
+    @test err1 ≈ err2 ≈ testval_diffEq &amp;&amp; err3 ≈ err4 ≈ testval_euler
+end
+
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example107_LinearDiffusionSpherical/">« 107:  Linear Diffusion Spherical</a><a class="docs-footer-nextpage" href="../Example301_PDEOptimSciMLSensitivity/">301: PDE Optim SciML Sensitivity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Monday 27 November 2023 13:56">Monday 27 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
