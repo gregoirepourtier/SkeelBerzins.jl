@@ -1,0 +1,4 @@
+style = "sciml"
+whitespace_typedefs = true
+separate_kwargs_with_semicolon = true
+margin = 110
