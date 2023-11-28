@@ -4,25 +4,23 @@
 using SkeelBerzins, DifferentialEquations
 using LinearAlgebra
 
-
 function main()
-
     Nx = 21
 
-	L = 1
-	T = 0.8
+    L = 1
+    T = 0.8
 
-	x_mesh = collect(range(0, L, length=Nx))
-	tspan  = (0.0, T)
+    x_mesh = collect(range(0, L; length=Nx))
+    tspan = (0.0, T)
 
-	m = 2
+    m = 2
 
-    function pdefun(x,t,u,dudx)
+    function pdefun(x, t, u, dudx)
         c = 1
         f = dudx
         s = 0
 
-        return c,f,s
+        return c, f, s
     end
 
     function icfun(x)
@@ -31,32 +29,33 @@ function main()
         return u0
     end
 
-    function bdfun(xl,ul,xr,ur,t)
+    function bdfun(xl, ul, xr, ur, t)
         pl = 0 # ignored by solver since m=1
         ql = 0 # ignored by solver since m=1
-        pr = ur-(1+6*t)
+        pr = ur - (1 + 6 * t)
         qr = 0
 
-        return pl,ql,pr,qr
+        return pl, ql, pr, qr
     end
 
-    params = SkeelBerzins.Params(solver=:DiffEq)
+    params = SkeelBerzins.Params(; solver=:DiffEq)
 
-    pb         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params)
-	problem    = DifferentialEquations.ODEProblem(pb)
-	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
+    pb = pdepe(m, pdefun, icfun, bdfun, x_mesh, tspan; params=params)
+    problem = DifferentialEquations.ODEProblem(pb)
+    sol_diffEq = DifferentialEquations.solve(problem, Rosenbrock23())
 
-    sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan)
+    sol_euler = pdepe(m, pdefun, icfun, bdfun, x_mesh, tspan)
 
-    exact(x,t) = x^2 + 6*t
+    exact(x, t) = x^2 + 6 * t
 
-    return norm(sol_diffEq.u[end] - exact.(x_mesh,T)) &lt; 1.0e-14 &amp;&amp; norm(sol_euler.u[end] - exact.(x_mesh,T)) &lt; 1.0e-2
+    return norm(sol_diffEq.u[end] - exact.(x_mesh, T)) &lt; 1.0e-14 &amp;&amp;
+           norm(sol_euler.u[end] - exact.(x_mesh, T)) &lt; 1.0e-2
 end
 
 using Test
 
 function runtests()
-	@test main()
+    @test main()
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example106_SystemReactionDiffusion/">« 106:  System Reaction Diffusion</a><a class="docs-footer-nextpage" href="../Example201_PartialDerivativeApprox/">201:  Partial Derivative Approx »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Tuesday 28 November 2023 13:05">Tuesday 28 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example106_SystemReactionDiffusion/">« 106:  System Reaction Diffusion</a><a class="docs-footer-nextpage" href="../Example201_PartialDerivativeApprox/">201:  Partial Derivative Approx »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Tuesday 28 November 2023 15:16">Tuesday 28 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

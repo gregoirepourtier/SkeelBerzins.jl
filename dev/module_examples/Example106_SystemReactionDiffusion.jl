@@ -1,6 +1,5 @@
 #=
 
-
 # Example 106: System of Reaction-Diffusion PDEs
 
 Solve the following system of PDEs:
@@ -29,62 +28,59 @@ module Example106_SystemReactionDiffusion
 
 using SkeelBerzins, DifferentialEquations
 
-
 function main()
+    N_x = 21
 
-	N_x = 21
-		
-	L = 1
-	T = 10
+    L = 1
+    T = 10
 
-	x_mesh = collect(range(0,L,length=N_x))
-	tspan  = (0, T)
+    x_mesh = collect(range(0, L; length=N_x))
+    tspan = (0, T)
 
-	m = 0
+    m = 0
 
-	function pdefun(x,t,u,dudx)
-		c = SVector(1,1)
-		f = SVector(0.5,0.1) .* dudx
-		y = u[1] - u[2]
-		s = SVector(-y, y)
-		
-		return c,f,s
-	end
+    function pdefun(x, t, u, dudx)
+        c = SVector(1, 1)
+        f = SVector(0.5, 0.1) .* dudx
+        y = u[1] - u[2]
+        s = SVector(-y, y)
 
-	function icfun(x)
-		u0 = SVector(0.0, 0.0)
-		
-		return u0
-	end
+        return c, f, s
+    end
 
+    function icfun(x)
+        u0 = SVector(0.0, 0.0)
 
-	function bdfun(xl,ul,xr,ur,t)
-		pl = SVector(ul[1]-1.0, 0)
-    	ql = SVector(0, 1)
-		pr = SVector(0, ur[2])
-		qr = SVector(1, 0)
+        return u0
+    end
 
-		return pl,ql,pr,qr
-	end
+    function bdfun(xl, ul, xr, ur, t)
+        pl = SVector(ul[1] - 1.0, 0)
+        ql = SVector(0, 1)
+        pr = SVector(0, ur[2])
+        qr = SVector(1, 0)
 
-	params_diffEq = SkeelBerzins.Params(solver=:DiffEq)
+        return pl, ql, pr, qr
+    end
 
-	pb         = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params_diffEq)
-	problem    = DifferentialEquations.ODEProblem(pb)
-	sol_diffEq = DifferentialEquations.solve(problem,Rosenbrock23())
+    params_diffEq = SkeelBerzins.Params(; solver=:DiffEq)
 
-	params_euler = SkeelBerzins.Params(tstep=1e-2)
+    pb = pdepe(m, pdefun, icfun, bdfun, x_mesh, tspan; params=params_diffEq)
+    problem = DifferentialEquations.ODEProblem(pb)
+    sol_diffEq = DifferentialEquations.solve(problem, Rosenbrock23())
 
-	sol_euler = pdepe(m,pdefun,icfun,bdfun,x_mesh,tspan ; params=params_euler)
+    params_euler = SkeelBerzins.Params(; tstep=1e-2)
 
-	return (sum(sol_diffEq.u[end]),sum(sol_euler.u[end]))
+    sol_euler = pdepe(m, pdefun, icfun, bdfun, x_mesh, tspan; params=params_euler)
+
+    return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
 end
 
 using Test
 
 function runtests()
     testval_diffEq = 29.035923566365785
-	testval_euler  = 29.034702247833415
+    testval_euler = 29.034702247833415
 
     approx_diffEq, approx_euler = main()
 

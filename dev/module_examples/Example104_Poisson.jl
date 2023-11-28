@@ -1,6 +1,5 @@
 #=
 
-
 # Example 104: 1D Poisson equation 
 
 Solve the following 1D Poisson equation:
@@ -18,52 +17,49 @@ module Example104_Poisson
 
 using SkeelBerzins
 
-
 function main()
+    N_x = 21
 
-	N_x = 21
-		
-	L = 1
-	T = 1
+    L = 1
+    T = 1
 
-	x_mesh = collect(range(0,L,length=N_x))
+    x_mesh = collect(range(0, L; length=N_x))
 
-	m = 0
+    m = 0
 
-	function pdefun(x,t,u,dudx)
-		c = 1
-		f = dudx 
-		s = 1
-		
-		return c,f,s
-	end
+    function pdefun(x, t, u, dudx)
+        c = 1
+        f = dudx
+        s = 1
 
-	function icfun(x)
-		u0 = 0.1
-		
-		return u0
-	end
+        return c, f, s
+    end
 
+    function icfun(x)
+        u0 = 0.1
 
-	function bdfun(xl,ul,xr,ur,t)
-		pl = ul - 0.1
-		ql = 0
-		pr = ur - 0.1
-		qr = 0
+        return u0
+    end
 
-		return pl,ql,pr,qr
-	end
+    function bdfun(xl, ul, xr, ur, t)
+        pl = ul - 0.1
+        ql = 0
+        pr = ur - 0.1
+        qr = 0
 
-	sol = pdepe(m,pdefun,icfun,bdfun,x_mesh)
-	
-	return sum(sol)
+        return pl, ql, pr, qr
+    end
+
+    sol = pdepe(m, pdefun, icfun, bdfun, x_mesh)
+
+    return sum(sol)
 end
 
 using Test
 
 function runtests()
-    testval=3.7624999999999997
-	@test main() ≈ testval
+    testval = 3.7624999999999997
+    @test main() ≈ testval
 end
 
 end
