@@ -1,0 +1,8 @@
+style = "sciml"
+remove_extra_newlines = false
+separate_kwargs_with_semicolon = true
+whitespace_in_kwargs = false
+for_in_replacement = "∈"
+yas_style_nesting = true
+format_docstrings = true
+margin = 130

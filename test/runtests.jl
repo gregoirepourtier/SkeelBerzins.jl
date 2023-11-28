@@ -10,15 +10,15 @@ ExampleJuggler.verbose!(true)
 # or false depending on success.
 function run_tests_from_directory(testdir, prefix)
     @info "Directory $(testdir):"
-    examples = filter(ex -> length(ex) >= length(prefix) && ex[1:length(prefix)] == prefix, basename.(readdir(testdir)))
+    examples = filter(ex -> length(ex) >= length(prefix) && ex[1:length(prefix)] == prefix,
+                      basename.(readdir(testdir)))
     @info examples
     @testmodules(testdir, examples)
 end
 
 function run_all_tests()
-
     example_dir = joinpath(@__DIR__, "..", "examples")
-    
+
     @testset "PDE Examples" begin
         run_tests_from_directory(example_dir, "Example1")
     end
@@ -28,7 +28,6 @@ function run_all_tests()
     @testset "Integration SciML Ecosystem" begin
         run_tests_from_directory(example_dir, "Example3")
     end
-
 end
 
 run_all_tests()
