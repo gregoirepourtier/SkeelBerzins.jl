@@ -4,6 +4,7 @@
     interpolation(xl, ul, xr, ur, quadrature_point, problem)
 
 Interpolate u and ``\\frac{du}{dx}`` between two discretization points at some specific quadrature point.
+Method use for scalar PDE.
 
 Input arguments:
 
@@ -14,7 +15,7 @@ Input arguments:
   - `quadrature_point`: quadrature point chosen according to the method described in [1].
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function interpolation(xl, ul, xr, ur, qd_point, pb)
+@inline function interpolation(xl, ul, xr, ur, qd_point, pb)
     if pb.singular
         h = xr^2 - xl^2
         tmp = qd_point^2 - xl^2
@@ -47,46 +48,59 @@ function interpolation(xl, ul, xr, ur, qd_point, pb)
 end
 
 """
-    interpolation!(interp, d_interp, xl, ul, xr, ur, quadrature_point, problem)
+    interpolation(xl, ul, xr, ur, quadrature_point, m, singular, npde)
 
-Mutating version of the [`interpolation`](@ref) function.
+Interpolate u and ``\\frac{du}{dx}`` between two discretization points at some specific quadrature point
+and return them as static vectors. Method use for system of PDEs.
+
+Input arguments:
+
+  - `xl`: left boundary of the current interval.
+  - `ul`: solution evaluated at the left boundary of the current interval.
+  - `xr`: right boundary of the current interval.
+  - `ur`: solution evaluated at the right boundary of the current interval.
+  - `quadrature_point`: quadrature point chosen according to the method described in [1].
+  - `m`: symmetry of the problem (given as a type).
+  - `singular`: indicates whether the problem is regular or singular (given as a type).
+  - `npde`: number of PDEs (given as a type).
 """
-function interpolation!(interp, dinterp, xl, ul, xr, ur, qd_point, pb)
-    if pb.singular
-        h = xr^2 - xl^2
-        tmp = qd_point^2 - xl^2
+@inline function interpolation(xl, ul, xr, ur, qd_point, m, ::Val{true}, ::Val{npde}) where {npde}
+    h = xr^2 - xl^2
+    tmp = qd_point^2 - xl^2
 
-        for i ∈ 1:(pb.npde)
-            interp[i] = ul[i] * (1 - (tmp / h)) + ur[i] * (tmp / h)
-            dinterp[i] = (2 * qd_point * (ur[i] - ul[i])) / h
-        end
+    interp = SVector{npde}(ul[i] * (1 - (tmp / h)) + ur[i] * (tmp / h) for i ∈ 1:npde)
+    dinterp = SVector{npde}((2 * qd_point * (ur[i] - ul[i])) / h for i ∈ 1:npde)
 
-    elseif pb.m == 0
-        h = xr - xl
+    interp, dinterp
+end
 
-        for i ∈ 1:(pb.npde)
-            interp[i] = (ul[i] * (xr - qd_point) + ur[i] * (qd_point - xl)) / h
-            dinterp[i] = (ur[i] - ul[i]) / h
-        end
+@inline function interpolation(xl, ul, xr, ur, qd_point, ::Val{0}, ::Val{false}, ::Val{npde}) where {npde}
+    h = xr - xl
 
-    elseif pb.m == 1
-        tmp = log(xr / xl)
-        test_fct = log(qd_point / xl) / tmp
+    interp = SVector{npde}((ul[i] * (xr - qd_point) + ur[i] * (qd_point - xl)) / h for i ∈ 1:npde)
+    dinterp = SVector{npde}((ur[i] - ul[i]) / h for i ∈ 1:npde)
 
-        for i ∈ 1:(pb.npde)
-            interp[i] = ul[i] * (1 - test_fct) + ur[i] * test_fct
-            dinterp[i] = (ur[i] - ul[i]) / (qd_point * tmp)
-        end
+    interp, dinterp
+end
 
-    elseif pb.m == 2
-        h = xr - xl
-        test_fct = (xr * (qd_point - xl)) / (qd_point * h)
+@inline function interpolation(xl, ul, xr, ur, qd_point, ::Val{1}, ::Val{false}, ::Val{npde}) where {npde}
+    tmp = log(xr / xl)
+    test_fct = log(qd_point / xl) / tmp
 
-        for i ∈ 1:(pb.npde)
-            interp[i] = ul[i] * (1 - test_fct) + ur[i] * test_fct
-            dinterp[i] = (ur[i] - ul[i]) * ((xr * xl) / (qd_point * qd_point * h))
-        end
-    end
+    interp = SVector{npde}(ul[i] * (1 - test_fct) + ur[i] * test_fct for i ∈ 1:npde)
+    dinterp = SVector{npde}((ur[i] - ul[i]) / (qd_point * tmp) for i ∈ 1:npde)
+
+    interp, dinterp
+end
+
+@inline function interpolation(xl, ul, xr, ur, qd_point, ::Val{2}, ::Val{false}, ::Val{npde}) where {npde}
+    h = xr - xl
+    test_fct = (xr * (qd_point - xl)) / (qd_point * h)
+
+    interp = SVector{npde}(ul[i] * (1 - test_fct) + ur[i] * test_fct for i ∈ 1:npde)
+    dinterp = SVector{npde}((ur[i] - ul[i]) * ((xr * xl) / (qd_point * qd_point * h)) for i ∈ 1:npde)
+
+    interp, dinterp
 end
 
 """
@@ -96,7 +110,7 @@ Structure storing the problem definition.
 
 $(TYPEDFIELDS)
 """
-struct ProblemDefinition{T, Tv <: AbstractVector, Ti <: Integer, Tm <: Number, elTv <: Number,
+struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: Number, elTv <: Number,
                          pdeFunction <: Function,
                          icFunction <: Function,
                          bdFunction <: Function}
@@ -626,21 +640,21 @@ function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params)
     # Choosing how to initialize the jacobian with sparsity pattern
     jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
 
-    pb = ProblemDefinition{npde, Tv, Ti, Tm, elTv, T1, T2, T3}(npde,
-                                                               Nx,
-                                                               xmesh,
-                                                               tspan,
-                                                               singular,
-                                                               m,
-                                                               jac,
-                                                               inival,
-                                                               ξ,
-                                                               ζ,
-                                                               pdefun,
-                                                               icfun,
-                                                               bdfun,
-                                                               similar(xmesh, npde),
-                                                               similar(xmesh, npde))
+    pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T2, T3}(npde,
+                                                                            Nx,
+                                                                            xmesh,
+                                                                            tspan,
+                                                                            singular,
+                                                                            m,
+                                                                            jac,
+                                                                            inival,
+                                                                            ξ,
+                                                                            ζ,
+                                                                            pdefun,
+                                                                            icfun,
+                                                                            bdfun,
+                                                                            similar(xmesh, npde),
+                                                                            similar(xmesh, npde))
 
     Nx, npde, inival, elTv, Ti, pb
 end

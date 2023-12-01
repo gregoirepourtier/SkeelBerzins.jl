@@ -1,5 +1,5 @@
 # Solver for one-dimensional ellipitic and parabolic nonlinear partial differential equations
-# API methods built upon MATLAB's pdepe API
+# API methods similar as MATLAB's pdepe API
 
 """
     pdepe(m, pdefunction, icfunction, bdfunction, xmesh, tspan ; params=SkeelBerzins.Params(), kwargs...)

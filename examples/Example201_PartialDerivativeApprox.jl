@@ -60,14 +60,7 @@ function main()
     problem = DifferentialEquations.ODEProblem(pb)
     sol_diffEq = DifferentialEquations.solve(problem, Rosenbrock23(); saveat=1 / (n - 1))
 
-    sol_euler, pb_data_euler = pdepe(m,
-                                     pdefun,
-                                     icfun,
-                                     bcfun,
-                                     xmesh,
-                                     tspan;
-                                     data=true,
-                                     tstep=1 / (n - 1))
+    sol_euler, pb_data_euler = pdepe(m, pdefun, icfun, bcfun, xmesh, tspan; data=true, tstep=1 / (n - 1))
 
     @assert sol_euler.t==sol_diffEq.t "error: different time steps"
 
@@ -91,11 +84,7 @@ function main()
     for t ∈ 1:n
         u1[t], dudx1[t] = pdeval(pb.m, pb.xmesh, sol_diffEq.u[t], 0, pb)
         u2[t], dudx2[t] = sol_diffEq(0, sol_diffEq.t[t], pb)
-        u3[t], dudx3[t] = pdeval(pb_data_euler.m,
-                                 pb_data_euler.xmesh,
-                                 sol_euler.u[t],
-                                 0,
-                                 pb_data_euler)
+        u3[t], dudx3[t] = pdeval(pb_data_euler.m, pb_data_euler.xmesh, sol_euler.u[t], 0, pb_data_euler)
         u4[t], dudx4[t] = sol_euler(0, sol_euler.t[t], pb_data_euler)
     end
 
