@@ -100,12 +100,10 @@ function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m,
     if pb.singular
         for i ∈ 1:(pb.npde)
             if qr[i] ≠ 0 && cl[i] ≠ 0
-                du[i, end] = (pr[i] +
-                              qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i])) /
+                du[i, end] = (pr[i] + qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i])) /
                              (-qr[i] / pb.xmesh[end]^(pb.m) * frac * cl[i])
             elseif qr[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i, end] = (pr[i] +
-                              qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i]))
+                du[i, end] = (pr[i] + qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i]))
             else
                 du[i, end] = pr[i]
             end

@@ -51,10 +51,7 @@ function f(p)
 
     pb = pdepe(m, pdefun, icfun, bcfun, collect(x), tspan; params=params_pdepe)
     prob = DifferentialEquations.ODEProblem(pb)
-    sol = DifferentialEquations.solve(prob,
-                                      RadauIIA3(; linsolve=SparspakFactorization());
-                                      dt=dt,
-                                      saveat=t)
+    sol = DifferentialEquations.solve(prob, RadauIIA3(; linsolve=SparspakFactorization()); dt=dt, saveat=t)
 
     sol
 end
@@ -93,10 +90,7 @@ function main()
     optf = Optimization.OptimizationFunction((x, p) -> loss(x), adtype)
 
     optprob = Optimization.OptimizationProblem(optf, ps)
-    res = Optimization.solve(optprob,
-                             NewtonTrustRegion();
-                             allow_f_increases=true,
-                             callback=callback)
+    res = Optimization.solve(optprob, NewtonTrustRegion(); allow_f_increases=true, callback=callback)
 
     return res.u
 end
