@@ -42,14 +42,7 @@ function main()
     problem = DifferentialEquations.ODEProblem(pb)
     sol_diffEq = DifferentialEquations.solve(problem, Rosenbrock23(); saveat=1 / (n - 1))
 
-    sol_euler, pb_data_euler = pdepe(m,
-                                     pdefun,
-                                     icfun,
-                                     bcfun,
-                                     xmesh,
-                                     tspan;
-                                     data=true,
-                                     tstep=1 / (n - 1))
+    sol_euler, pb_data_euler = pdepe(m, pdefun, icfun, bcfun, xmesh, tspan; data=true, tstep=1 / (n - 1))
 
     @assert sol_euler.t==sol_diffEq.t &quot;error: different time steps&quot;
 
@@ -73,11 +66,7 @@ function main()
     for t ∈ 1:n
         u1[t], dudx1[t] = pdeval(pb.m, pb.xmesh, sol_diffEq.u[t], 0, pb)
         u2[t], dudx2[t] = sol_diffEq(0, sol_diffEq.t[t], pb)
-        u3[t], dudx3[t] = pdeval(pb_data_euler.m,
-                                 pb_data_euler.xmesh,
-                                 sol_euler.u[t],
-                                 0,
-                                 pb_data_euler)
+        u3[t], dudx3[t] = pdeval(pb_data_euler.m, pb_data_euler.xmesh, sol_euler.u[t], 0, pb_data_euler)
         u4[t], dudx4[t] = sol_euler(0, sol_euler.t[t], pb_data_euler)
     end
 
@@ -103,4 +92,4 @@ function runtests()
     @test err1 ≈ err2 ≈ testval_diffEq &amp;&amp; err3 ≈ err4 ≈ testval_euler
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example107_LinearDiffusionSpherical/">« 107:  Linear Diffusion Spherical</a><a class="docs-footer-nextpage" href="../Example301_PDEOptimSciMLSensitivity/">301: PDE Optim SciML Sensitivity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Tuesday 28 November 2023 15:16">Tuesday 28 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example107_LinearDiffusionSpherical/">« 107:  Linear Diffusion Spherical</a><a class="docs-footer-nextpage" href="../Example301_PDEOptimSciMLSensitivity/">301: PDE Optim SciML Sensitivity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.0 on <span class="colophon-date" title="Friday 1 December 2023 12:52">Friday 1 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

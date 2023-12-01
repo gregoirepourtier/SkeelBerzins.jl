@@ -68,12 +68,13 @@ function main()
     pb = pdepe(m, pdefun, icfun, bdfun, x_mesh, tspan; params=params_diffEq)
     problem = DifferentialEquations.ODEProblem(pb)
     sol_diffEq = DifferentialEquations.solve(problem, Rosenbrock23())
+    sol_reshaped_diffEq = reshape(sol_diffEq, pb)
 
     params_euler = SkeelBerzins.Params(; tstep=1e-2)
 
     sol_euler = pdepe(m, pdefun, icfun, bdfun, x_mesh, tspan; params=params_euler)
 
-    return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]))
+    return (sum(sol_diffEq.u[end]), sum(sol_euler.u[end]), sol_reshaped_diffEq)
 end
 
 using Test
@@ -82,9 +83,9 @@ function runtests()
     testval_diffEq = 29.035923566365785
     testval_euler = 29.034702247833415
 
-    approx_diffEq, approx_euler = main()
+    approx_diffEq, approx_euler, sol_reshaped = main()
 
-    @test approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler
+    @test approx_diffEq ≈ testval_diffEq && approx_euler ≈ testval_euler && size(sol_reshaped)[1] == 2
 end
 
 end
