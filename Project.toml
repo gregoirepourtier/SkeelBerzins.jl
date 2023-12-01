@@ -1,7 +1,7 @@
 name = "SkeelBerzins"
 uuid = "15eb0f9a-d441-4223-9ae5-4829ae804a45"
 authors = ["gregoirepourtier <gpourtier@icloud.com>"]
-version = "1.0.0"
+version = "1.0.1"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
