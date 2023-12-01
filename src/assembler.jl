@@ -28,7 +28,7 @@ function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m,
     else
         @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[:, 1], pb.xmesh[end], u[:, end], t)
         @views interpolant, d_interpolant = interpolation(pb.xmesh[1], u[:, 1], pb.xmesh[2], u[:, 2], pb.ξ[1], Val(m),
-                                                           Val(singular), Val(npde))
+                                                          Val(singular), Val(npde))
     end
     cl, fl, sl = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
 
@@ -61,7 +61,7 @@ function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m,
         interpolant, d_interpolant = pb.npde == 1 ?
                                      interpolation(pb.xmesh[i], u[1, i], pb.xmesh[i + 1], u[1, i + 1], pb.ξ[i], pb) :
                                      interpolation(pb.xmesh[i], view(u, :, i), pb.xmesh[i + 1], view(u, :, i + 1), pb.ξ[i],
-                                                    Val(m), Val(singular), Val(npde))
+                                                   Val(m), Val(singular), Val(npde))
 
         cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
 
@@ -151,7 +151,7 @@ function mass_matrix(pb::ProblemDefinition{m, npde, singular}) where {m, npde, s
     else
         @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival_tmp[:, 1], pb.xmesh[end], inival_tmp[:, end], pb.tspan[1])
         @views interpolant, d_interpolant = interpolation(pb.xmesh[1], inival_tmp[:, 1], pb.xmesh[2], inival_tmp[:, 2], pb.ξ[1],
-                                                           Val(m), Val(singular), Val(npde))
+                                                          Val(m), Val(singular), Val(npde))
     end
     c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], interpolant, d_interpolant)
 
