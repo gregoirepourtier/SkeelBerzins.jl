@@ -38,7 +38,6 @@ workings of the package.
 ```@docs
 SkeelBerzins.assemble!
 SkeelBerzins.interpolation
-SkeelBerzins.interpolation!
 ```
 
 ### Newton solvers

@@ -16,9 +16,7 @@ where the input `problem` is defined as a [`SkeelBerzins.ProblemDefinition`](@re
 
 This function is specified in a way that it is compatible with the DifferentialEquations.jl package.
 """
-function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
-
-    type_tmp = eltype(u[1])
+function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m, npde, singular}
 
     du = reshape(du, (pb.npde, pb.Nx))
     u = reshape(u, (pb.npde, pb.Nx))
@@ -26,22 +24,13 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     # Evaluate the boundary conditions of the problem and interpolate u and du/dx for the first interval of the discretization
     if pb.npde == 1
         pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1, 1], pb.xmesh[end], u[1, end], t)
-
         interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1, 1], pb.xmesh[2], u[1, 2], pb.ξ[1], pb)
-        cl, fl, sl = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
     else
         @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[:, 1], pb.xmesh[end], u[:, end], t)
-
-        if type_tmp <: AbstractFloat
-            interpolant = pb.interpolant
-            d_interpolant = pb.d_interpolant
-        else
-            interpolant = Array{type_tmp, 1}(undef, pb.npde)
-            d_interpolant = Array{type_tmp, 1}(undef, pb.npde)
-        end
-        @views interpolation!(interpolant, d_interpolant, pb.xmesh[1], u[:, 1], pb.xmesh[2], u[:, 2], pb.ξ[1], pb)
-        @views cl, fl, sl = pb.pdefunction(pb.xmesh[1], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
+        @views interpolant, d_interpolant = interpolation(pb.xmesh[1], u[:, 1], pb.xmesh[2], u[:, 2], pb.ξ[1], Val(m),
+                                                           Val(singular), Val(npde))
     end
+    cl, fl, sl = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
 
     # Left boundary of the domain
     frac = (pb.ζ[1]^(pb.m + 1) - pb.xmesh[1]^(pb.m + 1)) / (pb.m + 1)
@@ -69,13 +58,12 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
 
     # Interior meshpoints of the domain
     for i ∈ 2:(pb.Nx - 1)
-        if pb.npde == 1
-            interpolant, d_interpolant = interpolation(pb.xmesh[i], u[1, i], pb.xmesh[i + 1], u[1, i + 1], pb.ξ[i], pb)
-            cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
-        else
-            @views interpolation!(interpolant, d_interpolant, pb.xmesh[i], u[:, i], pb.xmesh[i + 1], u[:, i + 1], pb.ξ[i], pb)
-            @views cr, fr, sr = pb.pdefunction(pb.xmesh[i], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
-        end
+        interpolant, d_interpolant = pb.npde == 1 ?
+                                     interpolation(pb.xmesh[i], u[1, i], pb.xmesh[i + 1], u[1, i + 1], pb.ξ[i], pb) :
+                                     interpolation(pb.xmesh[i], view(u, :, i), pb.xmesh[i + 1], view(u, :, i + 1), pb.ξ[i],
+                                                    Val(m), Val(singular), Val(npde))
+
+        cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
 
         frac1 = (pb.ζ[i]^(pb.m + 1) - pb.xmesh[i]^(pb.m + 1)) / (pb.m + 1)
         frac2 = (pb.xmesh[i]^(pb.m + 1) - pb.ζ[i - 1]^(pb.m + 1)) / (pb.m + 1)
@@ -112,10 +100,12 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
     if pb.singular
         for i ∈ 1:(pb.npde)
             if qr[i] ≠ 0 && cl[i] ≠ 0
-                du[i, end] = (pr[i] + qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i])) /
+                du[i, end] = (pr[i] +
+                              qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i])) /
                              (-qr[i] / pb.xmesh[end]^(pb.m) * frac * cl[i])
             elseif qr[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i, end] = (pr[i] + qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i]))
+                du[i, end] = (pr[i] +
+                              qr[i] / pb.xmesh[end]^(pb.m) * (pb.ζ[end]^(pb.m + 1) / pb.ξ[end] * fl[i] - frac * sl[i]))
             else
                 du[i, end] = pr[i]
             end
@@ -147,7 +137,7 @@ The entries of the matrix are set to 0 when the corresponding equation of the sy
 or the boundary condition is pure Dirichlet leading to solve a Differential-Algebraic system of Equations.
 In the case where the mass matrix is identity, we solve a system of ODEs.
 """
-function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
+function mass_matrix(pb::ProblemDefinition{m, npde, singular}) where {m, npde, singular}
 
     # Initialize the mass matrix M
     M = ones(pb.npde, pb.Nx)
@@ -157,16 +147,13 @@ function mass_matrix(pb::ProblemDefinition{npde}) where {npde}
 
     if pb.npde == 1
         pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival_tmp[1, 1], pb.xmesh[end], inival_tmp[1, end], pb.tspan[1])
-
         interpolant, d_interpolant = interpolation(pb.xmesh[1], inival_tmp[1, 1], pb.xmesh[2], inival_tmp[1, 2], pb.ξ[1], pb)
-        c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], interpolant, d_interpolant)
     else
         @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival_tmp[:, 1], pb.xmesh[end], inival_tmp[:, end], pb.tspan[1])
-
-        @views interpolation!(pb.interpolant, pb.d_interpolant, pb.xmesh[1], inival_tmp[:, 1], pb.xmesh[2], inival_tmp[:, 2],
-                              pb.ξ[1], pb)
-        @views c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], SVector{npde}(pb.interpolant), SVector{npde}(pb.d_interpolant))
+        @views interpolant, d_interpolant = interpolation(pb.xmesh[1], inival_tmp[:, 1], pb.xmesh[2], inival_tmp[:, 2], pb.ξ[1],
+                                                           Val(m), Val(singular), Val(npde))
     end
+    c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], interpolant, d_interpolant)
 
     for i ∈ 1:(pb.npde)
         if c[i] == 0 # elliptic equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
