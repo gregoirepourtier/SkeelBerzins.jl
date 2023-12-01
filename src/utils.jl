@@ -15,7 +15,7 @@ Input arguments:
   - `quadrature_point`: quadrature point chosen according to the method described in [1].
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function interpolation(xl, ul, xr, ur, qd_point, pb)
+@inline function interpolation(xl, ul, xr, ur, qd_point, pb)
     if pb.singular
         h = xr^2 - xl^2
         tmp = qd_point^2 - xl^2
@@ -64,7 +64,7 @@ Input arguments:
   - `singular`: indicates whether the problem is regular or singular (given as a type).
   - `npde`: number of PDEs (given as a type).
 """
-function interpolation(xl, ul, xr, ur, qd_point, m, ::Val{true}, ::Val{npde}) where {npde}
+@inline function interpolation(xl, ul, xr, ur, qd_point, m, ::Val{true}, ::Val{npde}) where {npde}
     h = xr^2 - xl^2
     tmp = qd_point^2 - xl^2
 
@@ -74,7 +74,7 @@ function interpolation(xl, ul, xr, ur, qd_point, m, ::Val{true}, ::Val{npde}) wh
     interp, dinterp
 end
 
-function interpolation(xl, ul, xr, ur, qd_point, ::Val{0}, ::Val{false}, ::Val{npde}) where {npde}
+@inline function interpolation(xl, ul, xr, ur, qd_point, ::Val{0}, ::Val{false}, ::Val{npde}) where {npde}
     h = xr - xl
 
     interp = SVector{npde}((ul[i] * (xr - qd_point) + ur[i] * (qd_point - xl)) / h for i ∈ 1:npde)
@@ -83,7 +83,7 @@ function interpolation(xl, ul, xr, ur, qd_point, ::Val{0}, ::Val{false}, ::Val{n
     interp, dinterp
 end
 
-function interpolation(xl, ul, xr, ur, qd_point, ::Val{1}, ::Val{false}, ::Val{npde}) where {npde}
+@inline function interpolation(xl, ul, xr, ur, qd_point, ::Val{1}, ::Val{false}, ::Val{npde}) where {npde}
     tmp = log(xr / xl)
     test_fct = log(qd_point / xl) / tmp
 
@@ -93,7 +93,7 @@ function interpolation(xl, ul, xr, ur, qd_point, ::Val{1}, ::Val{false}, ::Val{n
     interp, dinterp
 end
 
-function interpolation(xl, ul, xr, ur, qd_point, ::Val{2}, ::Val{false}, ::Val{npde}) where {npde}
+@inline function interpolation(xl, ul, xr, ur, qd_point, ::Val{2}, ::Val{false}, ::Val{npde}) where {npde}
     h = xr - xl
     test_fct = (xr * (qd_point - xl)) / (qd_point * h)
 
