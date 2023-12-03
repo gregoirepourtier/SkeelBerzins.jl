@@ -18,75 +18,112 @@ This function is specified in a way that it is compatible with the DifferentialE
 """
 function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m, npde, singular}
 
-    du = reshape(du, (pb.npde, pb.Nx))
-    u = reshape(u, (pb.npde, pb.Nx))
-
     # Evaluate the boundary conditions of the problem and interpolate u and du/dx for the first interval of the discretization
     if pb.npde == 1
-        pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1, 1], pb.xmesh[end], u[1, end], t)
-        interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1, 1], pb.xmesh[2], u[1, 2], pb.ξ[1], pb)
+        pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1], pb.xmesh[end], u[end - pb.Nr], t)
+        interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2 + pb.Nr], pb.ξ[1], pb)
     else
-        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[:, 1], pb.xmesh[end], u[:, end], t)
-        @views interpolant, d_interpolant = interpolation(pb.xmesh[1], u[:, 1], pb.xmesh[2], u[:, 2], pb.ξ[1], Val(m),
+        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1:(pb.npde)], pb.xmesh[end],
+                                              u[(end - pb.Nr - pb.npde + 1):(end - pb.Nr)], t)
+        @views interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1:(pb.npde)], pb.xmesh[2],
+                                                          u[(pb.npde + 1 + pb.Nr):(2 * pb.npde + pb.Nr)], pb.ξ[1], Val(m),
                                                           Val(singular), Val(npde))
     end
     cl, fl, sl = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
 
+    if pb.Nr != 0 && pb.markers_micro[1]
+        @views sl = pb.coupling_macro(pb.ξ[1], t, interpolant, u[(pb.npde + 1):(pb.npde + pb.Nr)]) # or pb.xmesh[1]
+    end
+
+    type_check_c = eltype(cl[1])
+
     # Left boundary of the domain
     frac = (pb.ζ[1]^(pb.m + 1) - pb.xmesh[1]^(pb.m + 1)) / (pb.m + 1)
 
-    if pb.singular # ignores the given boundary condition to enforce the symmetry condition
-        for i ∈ 1:(pb.npde)
-            if cl[i] ≠ 0
-                du[i, 1] = ((pb.m + 1) * fl[i] / pb.ξ[1] + sl[i]) / cl[i]
-            else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i, 1] = ((pb.m + 1) * fl[i] / pb.ξ[1] + sl[i])
-            end
-        end
-    else # Regular Case
-        for i ∈ 1:(pb.npde)
-            if ql[i] ≠ 0 && cl[i] ≠ 0
-                du[i, 1] = (pl[i] + ql[i] / pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m) * fl[i] + frac * sl[i])) /
-                           (ql[i] / (pb.xmesh[1]^(pb.m)) * frac * cl[i])
-            elseif ql[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                du[i, 1] = (pl[i] + ql[i] / pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m) * fl[i] + frac * sl[i]))
-            else # Dirichlet boundary conditions
-                du[i, 1] = pl[i]
-            end
-        end
+    # if pb.singular # ignores the given boundary condition to enforce the symmetry condition
+    #     for i ∈ 1:(pb.npde)
+    #         if cl[i] ≠ 0
+    #             du[i, 1] = ((pb.m + 1) * fl[i] / pb.ξ[1] + sl[i]) / cl[i]
+    #         else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
+    #             du[i, 1] = ((pb.m + 1) * fl[i] / pb.ξ[1] + sl[i])
+    #         end
+    #     end
+    # else # Regular Case
+    #     for i ∈ 1:(pb.npde)
+    #         if ql[i] ≠ 0 && cl[i] ≠ 0
+    #             du[i, 1] = (pl[i] + ql[i] / pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m) * fl[i] + frac * sl[i])) /
+    #                        (ql[i] / (pb.xmesh[1]^(pb.m)) * frac * cl[i])
+    #         elseif ql[i] ≠ 0 && cl[i] == 0 # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
+    #             du[i, 1] = (pl[i] + ql[i] / pb.xmesh[1]^(pb.m) * ((pb.ξ[1]^pb.m) * fl[i] + frac * sl[i]))
+    #         else # Dirichlet boundary conditions
+    #             du[i, 1] = pl[i]
+    #         end
+    #     end
+    # end
+
+    @views assemble_left_bd!(du, u, 1, 1, pb, cl, fl, sl, pl, ql, frac, type_check_c)
+
+    cpt_marker = 0
+
+    if pb.Nr != 0 && pb.markers_micro[1]
+        idx_u = 1
+        idx_uP1 = pb.npde + pb.Nr + 1
+
+        two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, 1)
+
+        cpt_marker += 1
     end
+
 
     # Interior meshpoints of the domain
     for i ∈ 2:(pb.Nx - 1)
+        idx_u = 1 + (i - 1) * pb.npde + cpt_marker * pb.Nr
+        if pb.Nr != 0
+            idx_uP1 = pb.markers_micro[i] ? idx_u + pb.Nr + pb.npde : idx_u + pb.npde
+        else
+            idx_uP1 = idx_u + pb.npde
+        end
+
         interpolant, d_interpolant = pb.npde == 1 ?
-                                     interpolation(pb.xmesh[i], u[1, i], pb.xmesh[i + 1], u[1, i + 1], pb.ξ[i], pb) :
-                                     interpolation(pb.xmesh[i], view(u, :, i), pb.xmesh[i + 1], view(u, :, i + 1), pb.ξ[i],
+                                     interpolation(pb.xmesh[i], u[idx_u], pb.xmesh[i + 1], u[idx_uP1], pb.ξ[i], pb) :
+                                     interpolation(pb.xmesh[i], view(u, idx_u:(idx_u + pb.npde - 1)), pb.xmesh[i + 1],
+                                                   view(u, idx_uP1:(idx_uP1 + pb.npde - 1)), pb.ξ[i],
                                                    Val(m), Val(singular), Val(npde))
 
         cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
+        if pb.Nr != 0 && pb.markers_micro[i]
+            @views sr = pb.coupling_macro(pb.xmesh[i], t, interpolant, u[(idx_u + 1):(idx_uP1 - 1)])
+        end
 
         frac1 = (pb.ζ[i]^(pb.m + 1) - pb.xmesh[i]^(pb.m + 1)) / (pb.m + 1)
         frac2 = (pb.xmesh[i]^(pb.m + 1) - pb.ζ[i - 1]^(pb.m + 1)) / (pb.m + 1)
 
-        if pb.singular
-            for j ∈ 1:(pb.npde)
-                if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j, i] = (pb.ζ[i]^(pb.m + 1) / pb.ξ[i] * fr[j] - pb.ζ[i - 1]^(pb.m + 1) / pb.ξ[i - 1] * fl[j] +
-                                frac1 * sr[j] + frac2 * sl[j]) / (frac1 * cr[j] + frac2 * cl[j])
-                else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j, i] = (pb.ζ[i]^(pb.m + 1) / pb.ξ[i] * fr[j] - pb.ζ[i - 1]^(pb.m + 1) / pb.ξ[i - 1] * fl[j] +
-                                frac1 * sr[j] + frac2 * sl[j])
-                end
-            end
-        else # Regular Case
-            for j ∈ 1:(pb.npde)
-                if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j, i] = (pb.ξ[i]^(pb.m) * fr[j] - pb.ξ[i - 1]^(pb.m) * fl[j] + frac1 * sr[j] + frac2 * sl[j]) /
-                               (frac1 * cr[j] + frac2 * cl[j])
-                else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j, i] = (pb.ξ[i]^(pb.m) * fr[j] - pb.ξ[i - 1]^(pb.m) * fl[j] + frac1 * sr[j] + frac2 * sl[j])
-                end
-            end
+        # if pb.singular
+        #     for j ∈ 1:(pb.npde)
+        #         if cl[j] ≠ 0 || cr[j] ≠ 0
+        #             du[j, i] = (pb.ζ[i]^(pb.m + 1) / pb.ξ[i] * fr[j] - pb.ζ[i - 1]^(pb.m + 1) / pb.ξ[i - 1] * fl[j] +
+        #                         frac1 * sr[j] + frac2 * sl[j]) / (frac1 * cr[j] + frac2 * cl[j])
+        #         else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
+        #             du[j, i] = (pb.ζ[i]^(pb.m + 1) / pb.ξ[i] * fr[j] - pb.ζ[i - 1]^(pb.m + 1) / pb.ξ[i - 1] * fl[j] +
+        #                         frac1 * sr[j] + frac2 * sl[j])
+        #         end
+        #     end
+        # else # Regular Case
+        #     for j ∈ 1:(pb.npde)
+        #         if cl[j] ≠ 0 || cr[j] ≠ 0
+        #             du[j, i] = (pb.ξ[i]^(pb.m) * fr[j] - pb.ξ[i - 1]^(pb.m) * fl[j] + frac1 * sr[j] + frac2 * sl[j]) /
+        #                        (frac1 * cr[j] + frac2 * cl[j])
+        #         else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
+        #             du[j, i] = (pb.ξ[i]^(pb.m) * fr[j] - pb.ξ[i - 1]^(pb.m) * fl[j] + frac1 * sr[j] + frac2 * sl[j])
+        #         end
+        #     end
+        # end
+
+        @views assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, frac1, frac2, pl, ql, pr, qr, type_check_c)
+
+        if pb.Nr != 0 && pb.markers_micro[i]
+            two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, i)
+            cpt_marker += 1
         end
 
         cl = cr
