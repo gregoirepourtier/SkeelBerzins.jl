@@ -99,7 +99,6 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         sl = sr
     end
 
-    @time begin
     # Right boundary of the domain
     idx_last = 1 + (pb.Nx - 1) * pb.npde + cpt_marker * pb.Nr
     @views assemble_right_bd!(du, u, pb.Nx, idx_last, pb, cl, fl, sl, pr, qr)
@@ -109,7 +108,6 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
         idx_uP1 = idx_last + pb.Nr + pb.npde # doesn't actually exist
 
         two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, pb.xmesh[end])
-    end
     end
 
     nothing
