@@ -58,8 +58,47 @@ Indeed since in the spatial discretization, we flattened the problem, the soluti
 So by reshaping the solution, we get a solution organised by unknows.
 """
 function Base.reshape(sol::AbstractDiffEqArray, pb::SkeelBerzins.ProblemDefinition)
-    RecursiveArrayTools.DiffEqArray([reshape(sol.u[i], (pb.npde, pb.Nx)) for i ∈ 1:length(sol.u)],
-                                    sol.t)
+    if pb.Nr == 0
+        RecursiveArrayTools.DiffEqArray([reshape(sol.u[i], (pb.npde, pb.Nx)) for i ∈ 1:length(sol.u)],
+                                        sol.t)
+    else
+        solutions = RecursiveArrayTools.DiffEqArray[]
+        total = pb.Nx * pb.npde + pb.Nx_marked * pb.Nr
+        index_macro = zeros(Bool, (pb.npde, total))
+        index_micro = zeros(Bool, (pb.Nx_marked, total))
+
+        for j ∈ 1:(pb.npde)
+            k = j
+            for i ∈ 1:(pb.Nx)
+                index_macro[j, k] = true
+
+                if pb.markers_micro[i]
+                    k += pb.npde + pb.Nr
+                else
+                    k += pb.npde
+                end
+            end
+            push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][index_macro[j, :]] for i ∈ 1:length(sol.u)], sol.t))
+        end
+
+        cpt_marker = 1
+        k = pb.npde + 1
+        for idx ∈ 1:(pb.Nx)
+            if pb.markers_micro[idx]
+                index_micro[cpt_marker, k:(k + pb.Nr - 1)] .= true
+
+                push!(solutions,
+                      RecursiveArrayTools.DiffEqArray([sol.u[i][index_micro[cpt_marker, :]] for i ∈ 1:length(sol.u)], sol.t))
+
+                cpt_marker += 1
+                k += pb.npde + pb.Nr
+            else
+                k += pb.npde
+            end
+        end
+
+        solutions
+    end
 end
 
 end
