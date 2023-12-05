@@ -632,8 +632,6 @@ end
 
 Function initializing the problem.
 
-Input arguments: similar as [`pdepe`](@ref).
-
 Returns the size of the space discretization Nx, the number of PDEs npde, the initial value inival,
 some data types elTv and Ti, and the struct containing the problem definition pb.
 """
@@ -670,9 +668,9 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
     Nr = 0
     inival_micro = nothing
 
-    markers_micro === nothing ? markers_micro = ones(Bool, Nx) : nothing
-
     if mr !== nothing
+        markers_micro === nothing ? markers_micro = ones(Bool, Nx) : nothing
+
         # Check if the paramater m is valid
         @assert mr == 0||mr == 1 || mr == 2 "Parameter mr invalid"
         # Check conformity of the mesh with respect to the given symmetry

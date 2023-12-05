@@ -1,6 +1,9 @@
 # Assemble boundaries of the problem
 
 """
+    assemble_left_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pl, ql)
+
+General assembly method for the left boundary of the problem.
 """
 function assemble_left_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pl, ql)
 
@@ -26,6 +29,9 @@ function assemble_left_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pl, ql)
 end
 
 """
+    assemble_left_bd_regular!(du, idx_x, i, idx_u, pb, cl, fl, sl, pl, ql, frac)
+
+Assemble the left boundary of the problem in the "regular" case.
 """
 function assemble_left_bd_regular!(du, idx_x, i, idx_u, pb, cl, fl, sl, pl, ql, frac)
     if ql[i] ≠ 0 && cl[i] !== zero(cl[i])
@@ -39,6 +45,9 @@ function assemble_left_bd_regular!(du, idx_x, i, idx_u, pb, cl, fl, sl, pl, ql, 
 end
 
 """
+    assemble_left_bd_singular!(du, idx_x, i, idx_u, pb, cl, fl, sl)
+
+Assemble the left boundary of the problem in the "singular" case.
 """
 function assemble_left_bd_singular!(du, idx_x, i, idx_u, pb, cl, fl, sl)
     if cl[i] !== zero(cl[i])
@@ -49,6 +58,9 @@ function assemble_left_bd_singular!(du, idx_x, i, idx_u, pb, cl, fl, sl)
 end
 
 """
+    assemble_right_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pr, qr)
+
+General assembly method for the right boundary of the problem.
 """
 function assemble_right_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pr, qr)
     idx_quad = idx_x == pb.Nx ? idx_x - 1 : idx_x
@@ -75,6 +87,9 @@ function assemble_right_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pr, qr)
 end
 
 """
+    assemble_right_bd_regular!(du, idx_x, i, idx_u, idx_quad, pb, cl, fl, sl, pr, qr, frac)
+
+Assemble the right boundary of the problem in the "regular" case.
 """
 function assemble_right_bd_regular!(du, idx_x, i, idx_u, idx_quad, pb, cl, fl, sl, pr, qr, frac)
     if qr[i] ≠ 0 && cl[i] !== zero(cl[i])
@@ -88,6 +103,9 @@ function assemble_right_bd_regular!(du, idx_x, i, idx_u, idx_quad, pb, cl, fl, s
 end
 
 """
+    assemble_right_bd_singular!(du, idx_x, i, idx_u, idx_quad, pb, cl, fl, sl, pr, qr, frac)
+
+Assemble the right boundary of the problem in the "singular" case.
 """
 function assemble_right_bd_singular!(du, idx_x, i, idx_u, idx_quad, pb, cl, fl, sl, pr, qr, frac)
     if qr[i] ≠ 0 && cl[i] !== zero(cl[i])

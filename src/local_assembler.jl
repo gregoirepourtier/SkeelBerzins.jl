@@ -1,6 +1,9 @@
 # Local assembly for interior points
 
 """
+    assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr)
+
+Assembly method for the interior meshpoints.
 """
 function assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr)
 

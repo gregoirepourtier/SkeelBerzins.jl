@@ -31,7 +31,7 @@ function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m,
     end
     cl, fl, sl = pb.pdefunction(pb.ξ[1], t, interpolant, d_interpolant)
 
-    if pb.Nr != 0 && pb.markers_micro[1]
+    if pb.Nr ≠ 0 && pb.markers_micro[1]
         @views sl = pb.coupling_macro(pb.ξ[1], t, interpolant, u[(pb.npde + 1):(pb.npde + pb.Nr)]) # or pb.xmesh[1]
     end
 
@@ -39,7 +39,7 @@ function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m,
     @views assemble_left_bd!(du, u, 1, 1, pb, cl, fl, sl, pl, ql)
 
     cpt_marker = 0
-    if pb.Nr != 0 && pb.markers_micro[1]
+    if pb.Nr ≠ 0 && pb.markers_micro[1]
         idx_u = 1
         idx_uP1 = pb.npde + pb.Nr + 1
 
@@ -64,13 +64,13 @@ function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m,
                                                    Val(m), Val(singular), Val(npde))
 
         cr, fr, sr = pb.pdefunction(pb.ξ[i], t, interpolant, d_interpolant)
-        if pb.Nr != 0 && pb.markers_micro[i]
-            @views sr = pb.coupling_macro(pb.xmesh[i], t, interpolant, u[(idx_u + 1):(idx_uP1 - 1)])
+        if pb.Nr ≠ 0 && pb.markers_micro[i]
+            @views sr = pb.coupling_macro(pb.ξ[i], t, interpolant, u[(idx_u + 1):(idx_uP1 - 1)])
         end
 
         @views assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr)
 
-        if pb.Nr != 0 && pb.markers_micro[i]
+        if pb.Nr ≠ 0 && pb.markers_micro[i]
             two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, pb.xmesh[i])
             cpt_marker += 1
         end
@@ -84,7 +84,7 @@ function assemble!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m,
     idx_last = 1 + (pb.Nx - 1) * pb.npde + cpt_marker * pb.Nr
     @views assemble_right_bd!(du, u, pb.Nx, idx_last, pb, cl, fl, sl, pr, qr)
 
-    if pb.Nr != 0 && pb.markers_micro[end]
+    if pb.Nr ≠ 0 && pb.markers_micro[end]
         idx_u = idx_last
         idx_uP1 = idx_last + pb.Nr + pb.npde # doesn't actually exist
 
@@ -109,7 +109,7 @@ function mass_matrix(pb::ProblemDefinition{m, npde, singular}) where {m, npde, s
 
     inival = pb.inival
 
-    if pb.Nr != 0
+    if pb.Nr ≠ 0
         n_total = pb.npde * pb.Nx + pb.Nx_marked * pb.Nr
 
         # Initialize the mass matrix M
@@ -128,7 +128,7 @@ function mass_matrix(pb::ProblemDefinition{m, npde, singular}) where {m, npde, s
         end
         c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], interpolant, d_interpolant)
 
-        # assume here that npde_micro=1 and c_micro≠0
+        # Assume here that npde_micro=1 and c_micro≠0
         pl_micro, ql_micro, pr_micro, qr_micro = pb.bdfunction_micro(pb.rmesh[1], inival[pb.npde + 1], pb.rmesh[end],
                                                                      inival[pb.npde + pb.Nr], pb.tspan[1])
 
