@@ -83,7 +83,7 @@ function assemble!(du, u, pb::ProblemDefinition{npde}, t) where {npde}
                                   u[idx_uP1:(idx_uP1 + pb.npde - 1)], pb.ξ[i], pb.singular, pb.m, pb.npde)
             @views cr, fr, sr = pb.pdefunction(pb.ξ[i], t, SVector{npde}(interpolant), SVector{npde}(d_interpolant))
             if pb.Nr != 0 && pb.markers_micro[i]
-                @views sr = pb.coupling_macro(pb.xmesh[i], t, SVector{npde}(interpolant), u[(idx_u + 1):(idx_uP1 - 1)])
+                @views sr = pb.coupling_macro(pb.ξ[i], t, SVector{npde}(interpolant), u[(idx_u + 1):(idx_uP1 - 1)])
             end
         end
 
