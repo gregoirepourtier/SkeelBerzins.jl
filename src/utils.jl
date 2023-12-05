@@ -201,7 +201,7 @@ mutable struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer
     coupling_micro::Coupling_micro
 
     markers_macro::Union{Vector{Bool}, Matrix{Bool}}
-    markers_micro::Union{Vector{Bool}, Nothing}
+    markers_micro::Vector{Bool}
 
     function ProblemDefinition{T1, T2, T3, Tv, Ti, Tm, elTv, pdeFunction, pdeFunction_micro, icFunction, icFunction_micro,
                                bdFunction, bdFunction_micro, Coupling_macro, Coupling_micro}() where {T1, T2, T3, Tv, Ti, Tm,
@@ -628,7 +628,7 @@ end
 (sol::AbstractDiffEqArray)(t) = interpolate_sol_time(sol, t)
 
 """
-    problem_init(m, xmesh, tspan, pdefun, icfun, bdfun, params)
+    problem_init(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params, pdefun_micro, icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_macro, markers_micro)
 
 Function initializing the problem.
 
@@ -670,9 +670,7 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
     Nr = 0
     inival_micro = nothing
 
-    if markers_micro === nothing
-        markers_micro = ones(Bool,Nx)
-    end
+    markers_micro === nothing ? markers_micro = ones(Bool, Nx) : nothing
 
     if mr !== nothing
         # Check if the paramater m is valid
@@ -698,15 +696,13 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
         inival_micro = [icfun_micro(i, j) for j ∈ rmesh, i ∈ xmesh][:, markers_micro]
         xmesh_marked = xmesh[markers_micro]
         nx_marked = length(xmesh_marked)
-
-        @assert Nr == 0 && mr === nothing||Nr > 0 "Number of meshpoint for the micro equations insufficient"
     end
+
+    @assert Nr == 0 && mr === nothing||Nr > 0 "Number of meshpoint for the micro equations insufficient"
 
     inival = Nr == 0 ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, elTv)
 
-    if markers_macro === nothing
-        markers_macro = ones(Bool, Nx, npde)
-    end
+    markers_macro = markers_macro === nothing ? ones(Bool, Nx, npde) : nothing
 
     pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T4, T2, T5, T3, T6, T7, T8}()
 
@@ -728,7 +724,7 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
 
     pb.Nr = Nr
     if mr !== nothing
-        pb.npde_micro = npde_micro # only considered for npde_micro=1 for the moment
+        pb.npde_micro = npde_micro # only considered for npde_micro=1 at the moment
         pb.rmesh = rmesh
         pb.singular_micro = singular_micro
         pb.mr = mr
@@ -760,36 +756,6 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
     else
         throw("Error: Invalid sparsity pattern selected. Please choose from the available options: :sparseArrays, :banded")
     end
-
-    # pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T4, T2, T5, T3, T6, T7, T8}(npde,
-    #                                                                                             npde_micro,
-    #                                                                                             Nx,
-    #                                                                                             Nr,
-    #                                                                                             nx_marked,
-    #                                                                                             xmesh,
-    #                                                                                             rmesh,
-    #                                                                                             xmesh_marked,
-    #                                                                                             tspan,
-    #                                                                                             singular,
-    #                                                                                             singular_micro,
-    #                                                                                             m,
-    #                                                                                             mr,
-    #                                                                                             jac,
-    #                                                                                             inival,
-    #                                                                                             ξ,
-    #                                                                                             ζ,
-    #                                                                                             ξ_micro,
-    #                                                                                             ζ_micro,
-    #                                                                                             pdefun,
-    #                                                                                             icfun,
-    #                                                                                             bdfun,
-    #                                                                                             pdefun_micro,
-    #                                                                                             icfun_micro,
-    #                                                                                             bdfun_micro,
-    #                                                                                             coupling_macro,
-    #                                                                                             coupling_micro,
-    #                                                                                             markers_macro,
-    #                                                                                             markers_micro)
 
     Nx, npde, inival, elTv, Ti, pb
 end

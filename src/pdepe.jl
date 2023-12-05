@@ -40,7 +40,7 @@ A spatial interpolation similar as the [`pdeval`](@ref) function is available on
 using the command `sol(x_eval,t,pb)`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), mr=nothing,
-               rmesh=collect(0:0.5:1),
+               rmesh=nothing,
                pdefun_micro::T4=nothing,
                icfun_micro::T5=nothing,
                bdfun_micro::T6=nothing,
