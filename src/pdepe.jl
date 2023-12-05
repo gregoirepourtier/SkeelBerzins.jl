@@ -162,7 +162,15 @@ Keyword argument:
 Returns a 1D Array with the solution available at the points defined by the spatial discretization
 `xmesh`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.Params(; tstep=Inf), kwargs...) where {T1, T2, T3}
+# function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.Params(; tstep=Inf), kwargs...) where {T1, T2, T3}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.Params(; tstep=Inf), mr=nothing, rmesh=nothing,
+               pdefun_micro::T4=nothing,
+               icfun_micro::T5=nothing,
+               bdfun_micro::T6=nothing,
+               coupling_macro::T7=nothing,
+               coupling_micro::T8=nothing,
+               markers_macro=nothing,
+               markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
               tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : Inf,
@@ -177,7 +185,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
     @assert params.tstep==Inf "Time step should be set to Inf to obtain the stationary solution"
 
     # Initialize Problem
-    Nx, npde, inival, elTv, Ti, pb = problem_init(m, xmesh, (0, 1), pdefun, icfun, bdfun, params)
+    Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, (0, 1), pdefun, icfun, bdfun, params, pdefun_micro,
+                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
+                                                  markers_macro, markers_micro)
 
     colors = matrix_colors(pb.jac)::Vector{Ti}
 
