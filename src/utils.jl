@@ -110,24 +110,35 @@ Structure storing the problem definition.
 
 $(TYPEDFIELDS)
 """
-struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: Number, elTv <: Number,
-                         pdeFunction <: Function,
-                         icFunction <: Function,
-                         bdFunction <: Function}
+mutable struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: Number, elTv <: Number,
+                                 pdeFunction <: Function, pdeFunction_micro <: Union{Function, Nothing},
+                                 icFunction <: Function, icFunction_micro <: Union{Function, Nothing},
+                                 bdFunction <: Function, bdFunction_micro <: Union{Function, Nothing},
+                                 Coupling_macro <: Union{Function, Nothing}, Coupling_micro <: Union{Function, Nothing}}
     """
     Number of unknowns
     """
     npde::Ti
+
+    npde_micro::Ti
 
     """
     Number of discretization points
     """
     Nx::Ti
 
+    Nr::Ti
+
+    Nx_marked::Ti
+
     """
     Grid of the problem
     """
     xmesh::Tv
+
+    rmesh::Tv
+
+    xmesh_marked::Tv
 
     """
     Time interval
@@ -139,10 +150,14 @@ struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: 
     """
     singular::Bool
 
+    singular_micro::Bool
+
     """
     Symmetry of the problem
     """
     m::Ti
+
+    mr::Union{Nothing, Ti}
 
     """
     Jacobi matrix
@@ -160,6 +175,9 @@ struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: 
     ξ::Tv
     ζ::Tv
 
+    ξ_micro::Tv
+    ζ_micro::Tv
+
     """
     Function defining the coefficients of the PDE
     """
@@ -175,11 +193,34 @@ struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: 
     """
     bdfunction::bdFunction
 
+    pdefunction_micro::pdeFunction_micro
+    icfunction_micro::icFunction_micro
+    bdfunction_micro::bdFunction_micro
+
+    coupling_macro::Coupling_macro
+    coupling_micro::Coupling_micro
+
     """
     Preallocated vectors for interpolation in assemble! function when solving system of PDEs
     """
-    interpolant::Tv
-    d_interpolant::Tv
+    # interpolant::Tv
+    # d_interpolant::Tv
+
+    markers_macro::Union{Vector{Bool}, Matrix{Bool}}
+    markers_micro::Union{Vector{Bool}, Nothing}
+
+    function ProblemDefinition{T1, T2, T3, Tv, Ti, Tm, elTv, pdeFunction, pdeFunction_micro, icFunction, icFunction_micro,
+                               bdFunction, bdFunction_micro, Coupling_macro, Coupling_micro}() where {T1, T2, T3, Tv, Ti, Tm,
+                                                                                                      elTv, pdeFunction,
+                                                                                                      pdeFunction_micro,
+                                                                                                      icFunction,
+                                                                                                      icFunction_micro,
+                                                                                                      bdFunction,
+                                                                                                      bdFunction_micro,
+                                                                                                      Coupling_macro,
+                                                                                                      Coupling_micro}
+        new()
+    end
 end
 
 """
@@ -189,7 +230,7 @@ Structure containing all the keyword arguments for the solver [`pdepe`](@ref).
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct Params
+Base.@kwdef struct Params{Tv <: Number}
     """
     Choice of the time discretization either use `:euler` for internal implicit Euler method or `:DiffEq` for the [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) package.
     """
@@ -199,7 +240,7 @@ Base.@kwdef struct Params
     Defines a time step (either pass a `Float64` or a `Vector`) when using the implicit Euler method. 
     When set to `tstep=Inf`, it solves the stationary version of the problem.
     """
-    tstep::Union{Float64, Vector{Float64}} = 1e-2
+    tstep::Union{Tv, Vector{Tv}} = 1e-2
 
     """
     Flag, returns with the solution, a list of 1d-array with the history from the newton solver.
@@ -602,7 +643,9 @@ Input arguments: similar as [`pdepe`](@ref).
 Returns the size of the space discretization Nx, the number of PDEs npde, the initial value inival,
 some data types elTv and Ti, and the struct containing the problem definition pb.
 """
-function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params) where {T1, T2, T3}
+function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params, pdefun_micro::T4, icfun_micro::T5,
+                      bdfun_micro::T6, coupling_macro::T7, coupling_micro::T8,
+                      markers_macro, markers_micro) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     # Size of the space discretization
     Nx = length(xmesh)
@@ -629,34 +672,156 @@ function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params)
 
     Ti = eltype(npde)
 
+    # Micro-Scale
+    Nr = 0
+    inival_micro = nothing
+    markers_micro = markers_micro === nothing ? nothing : ones(Bool, Nx)
+
+    if mr !== nothing
+        # Check if the paramater m is valid
+        @assert mr == 0||mr == 1 || mr == 2 "Parameter mr invalid"
+        # Check conformity of the mesh with respect to the given symmetry
+        @assert mr == 0||mr > 0 && rmesh[1] ≥ 0 "Non-conforming mesh"
+
+        # Size of the micro-scale discretization
+        Nr = length(rmesh)
+
+        # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
+        singular_micro = mr ≥ 1 && rmesh[1] == 0
+
+        α_micro = @view rmesh[1:(end - 1)]
+        β_micro = @view rmesh[2:end]
+        γ_micro = (α_micro .+ β_micro) ./ 2
+
+        ξ_micro, ζ_micro = get_quad_points_weights(mr, α_micro, β_micro, γ_micro, singular_micro)
+
+        # Number of unknows for the micro-scale problem
+        npde_micro = length(icfun_micro(xmesh[1], rmesh[1]))
+
+        inival_micro = [icfun_micro(i, j) for j ∈ rmesh, i ∈ xmesh][:, markers_micro]
+        xmesh_marked = xmesh[markers_micro]
+        nx_marked = length(xmesh_marked)
+
+        @assert Nr == 0 && mr === nothing||Nr > 0 "Number of meshpoint for the micro equations insufficient"
+    end
+
+    inival = Nr == 0 ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, Tv)
+
+    if markers_macro === nothing
+        markers_macro = ones(Bool, Nx, npde)
+    end
+
+    pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T4, T2, T5, T3, T6, T7, T8}()
+
+    pb.npde = npde
+    pb.Nx = Nx
+    pb.xmesh = xmesh
+    pb.tspan = tspan
+    pb.singular = singular
+    pb.m = m
+    pb.inival = inival
+    pb.ξ = ξ
+    pb.ζ = ζ
+
+    pb.pdefunction = pdefun
+    pb.icfunction = icfun
+    pb.bdfunction = bdfun
+
+    pb.markers_macro = markers_macro
+
+    pb.Nr = Nr
+    if mr !== nothing
+        pb.npde_micro = npde_micro # only considered for npde_micro=1 for the moment
+        pb.rmesh = rmesh
+        pb.singular_micro = singular_micro
+        pb.mr = mr
+
+        pb.pdefunction_micro = pdefun_micro
+        pb.icfunction_micro = icfun_micro
+        pb.bdfunction_micro = bdfun_micro
+
+        pb.coupling_macro = coupling_macro
+        pb.coupling_micro = coupling_micro
+
+        pb.ξ_micro, pb.ζ_micro = init_quadrature_pts(mr, α_micro, β_micro, γ_micro, singular_micro)
+
+        pb.markers_micro = markers_micro
+        pb.Nx_marked = nx_marked
+        pb.xmesh_marked = xmesh_marked
+    end
+
+    # Choosing how to initialize the jacobian with sparsity pattern
     if params.sparsity == :sparseArrays
         Tjac = SparseMatrixCSC{elTv, Ti}
+        pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
     elseif params.sparsity == :banded
         Tjac = BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}
+        pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
+    elseif params.sparsity == :symb
+        du0 = copy(inival)
+        pb.jac = elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble!(du, u, pb, 0.0), du0, inival))
     else
         throw("Error: Invalid sparsity pattern selected. Please choose from the available options: :sparseArrays, :banded")
     end
 
-    # Choosing how to initialize the jacobian with sparsity pattern
-    jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
-
-    pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T2, T3}(npde,
-                                                                            Nx,
-                                                                            xmesh,
-                                                                            tspan,
-                                                                            singular,
-                                                                            m,
-                                                                            jac,
-                                                                            inival,
-                                                                            ξ,
-                                                                            ζ,
-                                                                            pdefun,
-                                                                            icfun,
-                                                                            bdfun,
-                                                                            similar(xmesh, npde),
-                                                                            similar(xmesh, npde))
+    # pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T4, T2, T5, T3, T6, T7, T8}(npde,
+    #                                                                                             npde_micro,
+    #                                                                                             Nx,
+    #                                                                                             Nr,
+    #                                                                                             nx_marked,
+    #                                                                                             xmesh,
+    #                                                                                             rmesh,
+    #                                                                                             xmesh_marked,
+    #                                                                                             tspan,
+    #                                                                                             singular,
+    #                                                                                             singular_micro,
+    #                                                                                             m,
+    #                                                                                             mr,
+    #                                                                                             jac,
+    #                                                                                             inival,
+    #                                                                                             ξ,
+    #                                                                                             ζ,
+    #                                                                                             ξ_micro,
+    #                                                                                             ζ_micro,
+    #                                                                                             pdefun,
+    #                                                                                             icfun,
+    #                                                                                             bdfun,
+    #                                                                                             pdefun_micro,
+    #                                                                                             icfun_micro,
+    #                                                                                             bdfun_micro,
+    #                                                                                             coupling_macro,
+    #                                                                                             coupling_micro,
+    #                                                                                             markers_macro,
+    #                                                                                             markers_micro)
 
     Nx, npde, inival, elTv, Ti, pb
+end
+
+function init_inival(inival1, inival2, nx, nr, npde_x, markers, nx_marked, Tv)
+
+    n = npde_x * nx + nx_marked * nr
+    inival = zeros(Tv, n)
+
+    i = 1
+    cpt_markers = 1
+    for idx_xmesh ∈ 1:nx
+        idx_local = (idx_xmesh - 1) * npde_x + 1
+        inival[i:(i + npde_x - 1)] = inival1[idx_local:(idx_local + npde_x - 1)]
+
+        if markers[idx_xmesh]
+            cpt_nr = 1
+            for j ∈ (i + npde_x):(i + npde_x + nr - 1)
+                inival[j] = inival2[cpt_nr, cpt_markers]
+                cpt_nr += 1
+            end
+            i += npde_x + nr
+            cpt_markers += 1
+        else
+            i += npde_x
+        end
+    end
+
+    inival
 end
 
 """
@@ -717,7 +882,7 @@ end
 
 Function that provides the sparsity pattern in a SparseMatrixCSC.
 """
-function get_sparsity_pattern(sparsity::Type{TMat},
+function get_sparsity_pattern(::Type{TMat},
                               Nx,
                               npde,
                               elTv) where {TMat <: SparseArrays.AbstractSparseMatrixCSC}
@@ -758,7 +923,7 @@ end
 
 Function that provides the sparsity pattern in a BandedMatrix.
 """
-function get_sparsity_pattern(sparsity::Type{TMat},
+function get_sparsity_pattern(::Type{TMat},
                               Nx,
                               npde,
                               elTv) where {TMat <: BandedMatrices.AbstractBandedMatrix}

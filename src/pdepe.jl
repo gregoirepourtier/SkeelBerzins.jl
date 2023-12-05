@@ -39,7 +39,15 @@ solution at any time step within the interval ``(t_0,t_{end})`` (accessible usin
 A spatial interpolation similar as the [`pdeval`](@ref) function is available on the solution object
 using the command `sol(x_eval,t,pb)`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), kwargs...) where {T1, T2, T3}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), mr=nothing,
+               rmesh=collect(0:0.5:1),
+               pdefun_micro::T4=nothing,
+               icfun_micro::T5=nothing,
+               bdfun_micro::T6=nothing,
+               coupling_macro::T7=nothing,
+               coupling_micro::T8=nothing,
+               markers_macro=nothing,
+               markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
               tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : params.tstep,
@@ -58,7 +66,9 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
     @assert params.tstep≠Inf "Adjust time step or try the alternative method for solving elliptic problems"
 
     # Initialize Problem
-    Nx, npde, inival, elTv, Ti, pb = problem_init(m, xmesh, tspan, pdefun, icfun, bdfun, params)
+    Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params, pdefun_micro,
+                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
+                                                  markers_macro, markers_micro)
 
     # Solve time dependent problem via Implicit Euler method
     if params.solver == :euler
