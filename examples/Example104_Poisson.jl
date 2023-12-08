@@ -17,40 +17,37 @@ module Example104_Poisson
 
 using SkeelBerzins
 
+function pdefun(x, t, u, dudx)
+    c = 1
+    f = dudx
+    s = 1
+
+    return c, f, s
+end
+
+function icfun(x)
+    u0 = 0.1
+
+    return u0
+end
+
+function bdfun(xl, ul, xr, ur, t)
+    pl = ul - 0.1
+    ql = 0
+    pr = ur - 0.1
+    qr = 0
+
+    return pl, ql, pr, qr
+end
+
 function main()
-    N_x = 21
+    Nx = 21
 
-    L = 1
-    T = 1
-
-    x_mesh = collect(range(0, L; length=N_x))
+    xmesh = collect(range(0, 1; length=Nx))
 
     m = 0
 
-    function pdefun(x, t, u, dudx)
-        c = 1
-        f = dudx
-        s = 1
-
-        return c, f, s
-    end
-
-    function icfun(x)
-        u0 = 0.1
-
-        return u0
-    end
-
-    function bdfun(xl, ul, xr, ur, t)
-        pl = ul - 0.1
-        ql = 0
-        pr = ur - 0.1
-        qr = 0
-
-        return pl, ql, pr, qr
-    end
-
-    sol = pdepe(m, pdefun, icfun, bdfun, x_mesh)
+    sol = pdepe(m, pdefun, icfun, bdfun, xmesh)
 
     return sum(sol)
 end

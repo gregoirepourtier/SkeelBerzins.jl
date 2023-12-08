@@ -19,6 +19,10 @@ end
 function run_all_tests()
     example_dir = joinpath(@__DIR__, "..", "examples")
 
+    @testset "Test solve parameters" begin
+        run_tests_from_directory(@__DIR__, "test_")
+    end
+
     @testset "PDE Examples" begin
         run_tests_from_directory(example_dir, "Example1")
     end

@@ -152,13 +152,13 @@ struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: 
     """
     Evaluation of the initial condition
     """
-    inival::Tv
+    inival::Vector{elTv}
 
     """
     Interpolation points from the paper
     """
-    ξ::Tv
-    ζ::Tv
+    ξ::Vector{elTv}
+    ζ::Vector{elTv}
 
     """
     Function defining the coefficients of the PDE
@@ -174,12 +174,6 @@ struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: 
     Function defining the boundary conditions
     """
     bdfunction::bdFunction
-
-    """
-    Preallocated vectors for interpolation in assemble! function when solving system of PDEs
-    """
-    interpolant::Tv
-    d_interpolant::Tv
 end
 
 """
@@ -652,9 +646,7 @@ function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params)
                                                                             ζ,
                                                                             pdefun,
                                                                             icfun,
-                                                                            bdfun,
-                                                                            similar(xmesh, npde),
-                                                                            similar(xmesh, npde))
+                                                                            bdfun)
 
     Nx, npde, inival, elTv, Ti, pb
 end
