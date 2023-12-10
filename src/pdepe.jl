@@ -46,7 +46,6 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
                bdfun_micro::T6=nothing,
                coupling_macro::T7=nothing,
                coupling_micro::T8=nothing,
-               markers_macro=nothing,
                markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
@@ -57,6 +56,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
               maxit=haskey(kwargs, :maxit) ? kwargs[:maxit] : params.maxit,
               tol=haskey(kwargs, :tol) ? kwargs[:tol] : params.tol,
               data=haskey(kwargs, :data) ? kwargs[:data] : params.data)
+
+    markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
 
     # Check if the paramater m is valid
     @assert m == 0||m == 1 || m == 2 "Parameter m invalid"

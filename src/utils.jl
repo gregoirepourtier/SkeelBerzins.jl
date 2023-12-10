@@ -201,7 +201,7 @@ mutable struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer
     coupling_micro::Coupling_micro
 
     markers_macro::Union{Vector{Bool}, Matrix{Bool}}
-    markers_micro::Vector{Bool}
+    markers_micro::Union{Nothing,Vector{Bool}}
 
     function ProblemDefinition{T1, T2, T3, Tv, Ti, Tm, elTv, pdeFunction, pdeFunction_micro, icFunction, icFunction_micro,
                                bdFunction, bdFunction_micro, Coupling_macro, Coupling_micro}() where {T1, T2, T3, Tv, Ti, Tm,
@@ -700,7 +700,7 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
 
     inival = Nr == 0 ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, elTv)
 
-    markers_macro = markers_macro === nothing ? ones(Bool, Nx, npde) : nothing
+    # markers_macro = markers_macro === nothing ? ones(Bool, Nx, npde) : markers_macro
 
     pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T4, T2, T5, T3, T6, T7, T8}()
 
