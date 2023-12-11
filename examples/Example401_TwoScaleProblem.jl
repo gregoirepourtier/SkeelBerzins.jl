@@ -60,7 +60,7 @@ function main_two_scale()
     coupling_micro(x, t, u, v) = -u[1] + v[end]
 
     params = SkeelBerzins.Params(; solver=:DiffEq, sparsity=:symb)
-    markers = [x_mesh[i] < 0.3 || x_mesh[i] > 0.6 for i ∈ eachindex(x_mesh)]
+    markers = [xmesh[i] < 0.3 || xmesh[i] > 0.6 for i ∈ eachindex(xmesh)]
 
     pb = pdepe(m_x, pdefun_macro, icfun_macro, bdfun_macro, xmesh, tspan;
                params=params,
