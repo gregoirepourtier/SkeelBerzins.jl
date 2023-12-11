@@ -70,8 +70,8 @@ end
 """
     mass_matrix_one_scale(problem)
 
-Assemble the diagonal mass matrix M of the system of differential equations when solving a one-scale 
-problem with at least one parabolic PDE. The coefficients from M either take the value 0 or 1 since 
+Assemble the diagonal mass matrix M of the system of differential equations when solving a one-scale
+problem with at least one parabolic PDE. The coefficients from M either take the value 0 or 1 since
 it is scaled in the difference equations in the right-hand side.
 
 The entries of the matrix are set to 0 when the corresponding equation of the system is elliptic
@@ -83,22 +83,22 @@ function mass_matrix_one_scale(pb::ProblemDefinition{m, npde, singular}) where {
     inival = pb.inival
 
     # Initialize the mass matrix M
-    M = ones(pb.npde, pb.Nx)
+    M = ones(npde, pb.Nx)
     flag_DAE = false
 
     if npde == 1
         pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1], pb.xmesh[end], inival[end], pb.tspan[1])
         interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1], pb.xmesh[2], inival[2], pb.ξ[1], pb)
     else
-        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1:(pb.npde)], pb.xmesh[end],
-                                              inival[(end - pb.npde + 1):end], pb.tspan[1])
-        @views interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1:(pb.npde)], pb.xmesh[2],
-                                                          inival[(pb.npde + 1):(2 * pb.npde)], pb.ξ[1],
+        @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1:npde], pb.xmesh[end],
+                                              inival[(end - npde + 1):end], pb.tspan[1])
+        @views interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1:npde], pb.xmesh[2],
+                                                          inival[(npde + 1):(2 * npde)], pb.ξ[1],
                                                           Val(m), Val(singular), Val(npde))
     end
     c, f, s = pb.pdefunction(pb.ξ[1], pb.tspan[1], interpolant, d_interpolant)
 
-    for i ∈ 1:(pb.npde)
+    for i ∈ 1:npde
         if c[i] == 0 # elliptic equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
             M[i, 2:(end - 1)] .= 0
             flag_DAE = true
@@ -113,8 +113,10 @@ function mass_matrix_one_scale(pb::ProblemDefinition{m, npde, singular}) where {
             M[i, end] = 0
             flag_DAE = true
         end
+    end
 
-        for j ∈ 1:(pb.Nx)
+    for j ∈ 1:(pb.Nx)
+        for i ∈ 1:npde
             if !pb.markers_macro[j, i]
                 M[i, j] = 0
                 flag_DAE = true

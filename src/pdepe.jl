@@ -57,10 +57,6 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
               tol=haskey(kwargs, :tol) ? kwargs[:tol] : params.tol,
               data=haskey(kwargs, :data) ? kwargs[:data] : params.data)
 
-    Nx = length(xmesh)
-    npde = length(icfun(xmesh[1]))
-    markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
-
     # Check if the paramater m is valid
     @assert m == 0||m == 1 || m == 2 "Parameter m invalid"
     # Check conformity of the mesh with respect to the given symmetry
@@ -70,8 +66,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
 
     # Initialize Problem
     Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params, pdefun_micro,
-                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
-                                                  markers_macro, markers_micro)
+                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_micro;
+                                                  kwargs...)
 
     # Solve time dependent problem via Implicit Euler method
     if params.solver == :euler
@@ -172,7 +168,6 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
                bdfun_micro::T6=nothing,
                coupling_macro::T7=nothing,
                coupling_micro::T8=nothing,
-               markers_macro=nothing,
                markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
@@ -187,14 +182,10 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
     @assert params.solver==:euler "Elliptic problems can only be solved using the Euler method"
     @assert params.tstep==Inf "Time step should be set to Inf to obtain the stationary solution"
 
-    Nx = length(xmesh)
-    npde = length(icfun(xmesh[1]))
-    markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
-
     # Initialize Problem
     Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, (0, 1), pdefun, icfun, bdfun, params, pdefun_micro,
-                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
-                                                  markers_macro, markers_micro)
+                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_micro;
+                                                  kwargs...)
 
     colors = matrix_colors(pb.jac)::Vector{Ti}
 

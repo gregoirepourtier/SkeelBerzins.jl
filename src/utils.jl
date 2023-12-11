@@ -201,7 +201,7 @@ mutable struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer
     coupling_micro::Coupling_micro
 
     markers_macro::Union{Vector{Bool}, Matrix{Bool}}
-    markers_micro::Union{Nothing,Vector{Bool}}
+    markers_micro::Union{Nothing, Vector{Bool}}
 
     function ProblemDefinition{T1, T2, T3, Tv, Ti, Tm, elTv, pdeFunction, pdeFunction_micro, icFunction, icFunction_micro,
                                bdFunction, bdFunction_micro, Coupling_macro, Coupling_micro}() where {T1, T2, T3, Tv, Ti, Tm,
@@ -637,7 +637,7 @@ some data types elTv and Ti, and the struct containing the problem definition pb
 """
 function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params, pdefun_micro::T4, icfun_micro::T5,
                       bdfun_micro::T6, coupling_macro::T7, coupling_micro::T8,
-                      markers_macro, markers_micro) where {T1, T2, T3, T4, T5, T6, T7, T8}
+                      markers_micro; kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     # Size of the space discretization
     Nx = length(xmesh)
@@ -658,6 +658,8 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
 
     # Number of unknows in the PDE problem
     npde = length(icfun(xmesh[1]))
+
+    markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
 
     # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
     inival = npde == 1 ? icfun.(xmesh) : vec(reduce(hcat, icfun.(xmesh)))
@@ -699,8 +701,6 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
     @assert Nr == 0 && mr === nothing||Nr > 0 "Number of meshpoint for the micro equations insufficient"
 
     inival = Nr == 0 ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, elTv)
-
-    # markers_macro = markers_macro === nothing ? ones(Bool, Nx, npde) : markers_macro
 
     pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T4, T2, T5, T3, T6, T7, T8}()
 
