@@ -28,6 +28,10 @@ function run_all_tests()
     @testset "Integration SciML Ecosystem" begin
         run_tests_from_directory(example_dir, "Example3")
     end
+
+    @testset "Solve Two-Scale PDEs" begin
+        run_tests_from_directory(example_dir, "Example4")
+    end
 end
 
 run_all_tests()
