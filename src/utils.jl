@@ -274,7 +274,7 @@ end
 Assemble the system for the implicit Euler method.
 """
 function implicitEuler!(y, u, pb, tau, mass, timeStep)
-    assemble!(y, u, pb, timeStep)
+    assemble_one_scale!(y, u, pb, timeStep)
 
     y = reshape(y, (pb.npde, pb.Nx))
     u = reshape(u, (pb.npde, pb.Nx))
@@ -293,7 +293,7 @@ end
 Assemble the system for the implicit Euler method (variant method for stationary problems).
 """
 function implicitEuler_stat!(y, u, pb, tau, timeStep)
-    assemble!(y, u, pb, timeStep)
+    assemble_one_scale!(y, u, pb, timeStep)
 
     y = reshape(y, (pb.npde, pb.Nx))
     u = reshape(u, (pb.npde, pb.Nx))
@@ -750,7 +750,7 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
         pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
     elseif params.sparsity == :symb
         du0 = copy(inival)
-        pb.jac = elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble!(du, u, pb, 0.0), du0, inival))
+        pb.jac = elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble_one_scale!(du, u, pb, 0.0), du0, inival))
     else
         throw("Error: Invalid sparsity pattern selected. Please choose from the available options: :sparseArrays, :banded")
     end

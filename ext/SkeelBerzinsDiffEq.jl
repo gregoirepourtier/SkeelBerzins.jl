@@ -3,15 +3,13 @@ module SkeelBerzinsDiffEq
 # Enables SkeelBerzins.jl to create an ODEProblem and use the solvers
 # from DifferentialEquations.jl for solving transient problems
 
-using SkeelBerzins
-
-isdefined(Base, :get_extension) ? (using DifferentialEquations) : (using ..DifferentialEquations)
+using SkeelBerzins, DifferentialEquations
 
 """
     ODEFunction(problem)
 
 Generate an [ODEFunction](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEFunction)
-from the spatial discretization derived in the [`SkeelBerzins.assemble!`](@ref) function.
+from the spatial discretization derived in the [`SkeelBerzins.assemble_one_scale!`](@ref) function.
 It is expressed as a [mass matrix ODE](https://docs.sciml.ai/DiffEqDocs/stable/tutorials/dae_example/)
 if the mass matrix is different from the identity matrix or as a simple
 [system of ODEs](https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#stiff) otherwise
@@ -22,13 +20,13 @@ Input argument:
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
 function DifferentialEquations.ODEFunction(pb::SkeelBerzins.ProblemDefinition)
-    massMatrix, flag_DAE = SkeelBerzins.mass_matrix(pb)
+    massMatrix, flag_DAE = SkeelBerzins.mass_matrix_one_scale(pb)
     if flag_DAE
-        DifferentialEquations.ODEFunction(SkeelBerzins.assemble!;
+        DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!;
                                           jac_prototype=pb.jac,
                                           mass_matrix=massMatrix)
     else
-        DifferentialEquations.ODEFunction(SkeelBerzins.assemble!; jac_prototype=pb.jac)
+        DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!; jac_prototype=pb.jac)
     end
 end
 

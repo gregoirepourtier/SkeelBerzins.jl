@@ -3,47 +3,54 @@
 """
     assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr)
 
-Assembly method for the interior meshpoints.
+Assemble interior meshpoints of the problem in the "singular" case.
 """
-function assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr)
+function assemble_local!(du, u, idx_x, idx_u, index_npde, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr, ::Val{true})
 
-    frac1 = (pb.ζ[i]^(pb.m + 1) - pb.xmesh[i]^(pb.m + 1)) / (pb.m + 1)
-    frac2 = (pb.xmesh[i]^(pb.m + 1) - pb.ζ[i - 1]^(pb.m + 1)) / (pb.m + 1)
+    frac1 = (pb.ζ[idx_x]^(pb.m + 1) - pb.xmesh[idx_x]^(pb.m + 1)) / (pb.m + 1)
+    frac2 = (pb.xmesh[idx_x]^(pb.m + 1) - pb.ζ[idx_x - 1]^(pb.m + 1)) / (pb.m + 1)
 
-    if pb.singular
-        for j ∈ 1:(pb.npde)
-            if !pb.markers_macro[i - 1, j] && pb.markers_macro[i, j]
-                @views assemble_left_bd_singular!(du, i, j, idx_u, pb, cr, fr, sr)
-            elseif pb.markers_macro[i, j] && pb.markers_macro[i + 1, j]
-                if cl[j] ≠ 0 || cr[j] ≠ 0
-                    du[j + idx_u - 1] = (pb.ζ[i]^(pb.m + 1) / pb.ξ[i] * fr[j] - pb.ζ[i - 1]^(pb.m + 1) / pb.ξ[i - 1] * fl[j] +
-                                         frac1 * sr[j] + frac2 * sl[j]) / (frac1 * cr[j] + frac2 * cl[j])
-                else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j + idx_u - 1] = (pb.ζ[i]^(pb.m + 1) / pb.ξ[i] * fr[j] - pb.ζ[i - 1]^(pb.m + 1) / pb.ξ[i - 1] * fl[j] +
-                                         frac1 * sr[j] + frac2 * sl[j])
-                end
-            elseif pb.markers_macro[i, j] && !pb.markers_macro[i + 1, j]
-                @views assemble_right_bd_singular!(du, i, j, idx_u, i, pb, cl, fl, sl, pr, qr, frac2)
-            else
-                du[j + idx_u - 1] = u[j + idx_u - 1]
-            end
+    if !pb.markers_macro[idx_x - 1, index_npde] && pb.markers_macro[idx_x, index_npde]
+        @views assemble_left_bd!(du, u, idx_x, idx_u, pb, cr, fr, sr, pl, ql, Val(true), Val(true))
+    elseif pb.markers_macro[idx_x, index_npde] && pb.markers_macro[idx_x + 1, index_npde]
+        if cl ≠ 0 || cr ≠ 0
+            du[idx_u] = (pb.ζ[idx_x]^(pb.m + 1) / pb.ξ[idx_x] * fr -
+                         pb.ζ[idx_x - 1]^(pb.m + 1) / pb.ξ[idx_x - 1] * fl +
+                         frac1 * sr + frac2 * sl) / (frac1 * cr + frac2 * cl)
+        else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
+            du[idx_u] = (pb.ζ[idx_x]^(pb.m + 1) / pb.ξ[idx_x] * fr -
+                         pb.ζ[idx_x - 1]^(pb.m + 1) / pb.ξ[idx_x - 1] * fl +
+                         frac1 * sr + frac2 * sl)
         end
-    else # Regular Case
-        for j ∈ 1:(pb.npde)
-            if !pb.markers_macro[i - 1, j] && pb.markers_macro[i, j]
-                @views assemble_left_bd_regular!(du, i, j, idx_u, pb, cr, fr, sr, pl, ql, frac2)
-            elseif pb.markers_macro[i, j] && pb.markers_macro[i + 1, j]
-                if cl[j] !== zero(cl[j]) || cr[j] !== zero(cl[j])
-                    du[j + idx_u - 1] = (pb.ξ[i]^(pb.m) * fr[j] - pb.ξ[i - 1]^(pb.m) * fl[j] + frac1 * sr[j] + frac2 * sl[j]) /
-                                        (frac1 * cr[j] + frac2 * cl[j]) # j + (idx_u-1)*pb.npde
-                else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
-                    du[j + idx_u - 1] = (pb.ξ[i]^(pb.m) * fr[j] - pb.ξ[i - 1]^(pb.m) * fl[j] + frac1 * sr[j] + frac2 * sl[j])
-                end
-            elseif pb.markers_macro[i, j] && !pb.markers_macro[i + 1, j]
-                @views assemble_right_bd_regular!(du, i, j, idx_u, i, pb, cl, fl, sl, pr, qr, frac2)
-            else
-                du[j + idx_u - 1] = u[j + idx_u - 1]
-            end
+    elseif pb.markers_macro[idx_x, index_npde] && !pb.markers_macro[idx_x + 1, index_npde]
+        @views assemble_right_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pr, qr, Val(true), Val(true))
+    else
+        du[idx_u] = u[idx_u]
+    end
+end
+
+"""
+    assemble_local!(du, u, i, idx_u, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr)
+
+Assemble interior meshpoints of the problem in the "regular" case.
+"""
+function assemble_local!(du, u, idx_x, idx_u, index_npde, pb, cl, fl, sl, cr, fr, sr, pl, ql, pr, qr, ::Val{false})
+
+    frac1 = (pb.ζ[idx_x]^(pb.m + 1) - pb.xmesh[idx_x]^(pb.m + 1)) / (pb.m + 1)
+    frac2 = (pb.xmesh[idx_x]^(pb.m + 1) - pb.ζ[idx_x - 1]^(pb.m + 1)) / (pb.m + 1)
+
+    if !pb.markers_macro[idx_x - 1, index_npde] && pb.markers_macro[idx_x, index_npde]
+        @views assemble_left_bd!(du, u, idx_x, idx_u, pb, cr, fr, sr, pl, ql, Val(false), Val(true))
+    elseif pb.markers_macro[idx_x, index_npde] && pb.markers_macro[idx_x + 1, index_npde]
+        if cl !== zero(cl) || cr !== zero(cl)
+            du[idx_u] = (pb.ξ[idx_x]^(pb.m) * fr - pb.ξ[idx_x - 1]^(pb.m) * fl + frac1 * sr +
+                         frac2 * sl) / (frac1 * cr + frac2 * cl)
+        else # stationary equation: set the corresponding coefficient in the mass matrix to 0 to generate a DAE
+            du[idx_u] = (pb.ξ[idx_x]^(pb.m) * fr - pb.ξ[idx_x - 1]^(pb.m) * fl + frac1 * sr + frac2 * sl)
         end
+    elseif pb.markers_macro[idx_x, index_npde] && !pb.markers_macro[idx_x + 1, index_npde]
+        @views assemble_right_bd!(du, u, idx_x, idx_u, pb, cl, fl, sl, pr, qr, Val(false), Val(true))
+    else
+        du[idx_u] = u[idx_u]
     end
 end

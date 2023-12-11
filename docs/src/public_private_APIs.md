@@ -36,7 +36,7 @@ workings of the package.
 
 ### Spatial Discretization
 ```@docs
-SkeelBerzins.assemble!
+SkeelBerzins.assemble_one_scale!
 SkeelBerzins.interpolation
 ```
 

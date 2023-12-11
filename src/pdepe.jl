@@ -57,6 +57,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
               tol=haskey(kwargs, :tol) ? kwargs[:tol] : params.tol,
               data=haskey(kwargs, :data) ? kwargs[:data] : params.data)
 
+    Nx = length(xmesh)
+    npde = length(icfun(xmesh[1]))
     markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
 
     # Check if the paramater m is valid
@@ -85,7 +87,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
         end
 
         # Build the mass matrix
-        mass_mat_diag = mass_matrix(pb)[1]
+        mass_mat_diag = mass_matrix_one_scale(pb)[1]
         mass_mat_vec = reshape(mass_mat_diag.diag, (npde, Nx))
 
         # Process Time steps
@@ -184,6 +186,10 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
 
     @assert params.solver==:euler "Elliptic problems can only be solved using the Euler method"
     @assert params.tstep==Inf "Time step should be set to Inf to obtain the stationary solution"
+
+    Nx = length(xmesh)
+    npde = length(icfun(xmesh[1]))
+    markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
 
     # Initialize Problem
     Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, (0, 1), pdefun, icfun, bdfun, params, pdefun_micro,
