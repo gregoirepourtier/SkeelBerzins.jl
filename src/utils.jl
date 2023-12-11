@@ -750,7 +750,8 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
         pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
     elseif params.sparsity == :symb
         du0 = copy(inival)
-        pb.jac = elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble_one_scale!(du, u, pb, 0.0), du0, inival))
+        pb.jac = Nr ≠ 0 ? elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble_two_scale!(du, u, pb, 0.0), du0, inival)) :
+                 elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble_one_scale!(du, u, pb, 0.0), du0, inival))
     else
         throw("Error: Invalid sparsity pattern selected. Please choose from the available options: :sparseArrays, :banded")
     end

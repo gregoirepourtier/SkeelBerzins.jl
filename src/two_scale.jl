@@ -115,4 +115,6 @@ function two_scale_assembler!(du, u, pb, t, idx_u, idx_uP1, pt_xmesh)
             end
         end
     end
+
+    nothing
 end

@@ -20,13 +20,24 @@ Input argument:
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
 function DifferentialEquations.ODEFunction(pb::SkeelBerzins.ProblemDefinition)
-    massMatrix, flag_DAE = SkeelBerzins.mass_matrix_one_scale(pb)
-    if flag_DAE
-        DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!;
-                                          jac_prototype=pb.jac,
-                                          mass_matrix=massMatrix)
+    if pb.Nr ≠ 0
+        massMatrix, flag_DAE = SkeelBerzins.mass_matrix_two_scale(pb)
+        if flag_DAE
+            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_two_scale!;
+                                              jac_prototype=pb.jac,
+                                              mass_matrix=massMatrix)
+        else
+            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_two_scale!; jac_prototype=pb.jac)
+        end
     else
-        DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!; jac_prototype=pb.jac)
+        massMatrix, flag_DAE = SkeelBerzins.mass_matrix_one_scale(pb)
+        if flag_DAE
+            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!;
+                                              jac_prototype=pb.jac,
+                                              mass_matrix=massMatrix)
+        else
+            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!; jac_prototype=pb.jac)
+        end
     end
 end
 
