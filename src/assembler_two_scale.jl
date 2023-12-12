@@ -37,7 +37,8 @@ function assemble_two_scale!(du, u, pb::ProblemDefinition{m, npde, singular}, t)
 
     # Left boundary of the domain
     for i ∈ 1:npde
-        @views assemble_left_bd!(du, u, 1, i, pb, cl[i], fl[i], sl[i], pl[i], ql[i], Val(singular), Val(pb.markers_macro[1, i]))
+        @views assemble_left_bd!(du, u, i, m, pb.xmesh[1], pb.ξ[1], pb.ζ[1], cl[i], fl[i], sl[i], pl[i], ql[i], Val(singular),
+                                 Val(pb.markers_macro[1, i]))
     end
 
     cpt_marker = 0
@@ -68,8 +69,18 @@ function assemble_two_scale!(du, u, pb::ProblemDefinition{m, npde, singular}, t)
 
         for j ∈ 1:npde
             idx = idx_u + j - 1
-            @views assemble_local!(du, u, i, idx, j, pb, cl[j], fl[j], sl[j], cr[j], fr[j], sr[j], pl[j],
-                                   ql[j], pr[j], qr[j], Val(singular))
+            if !pb.markers_macro[i - 1, j] && pb.markers_macro[i, j]
+                @views assemble_left_bd!(du, u, idx, pb.m, pb.xmesh[i], pb.ξ[i], pb.ζ[i], cr[j], fr[j], sr[j], pl[j], ql[j],
+                                         Val(pb.singular), Val(true))
+            elseif pb.markers_macro[i, j] && pb.markers_macro[i + 1, j]
+                @views assemble_local!(du, i, idx, m, pb.xmesh, pb.ξ, pb.ζ, cl[j], fl[j], sl[j], cr[j], fr[j], sr[j], pl[j],
+                                       ql[j], pr[j], qr[j], Val(singular))
+            elseif pb.markers_macro[i, j] && !pb.markers_macro[i + 1, j]
+                @views assemble_right_bd!(du, u, idx, pb.m, pb.xmesh[i], pb.ξ[i], pb.ζ[i], cl[j], fl[j], sl[j], pr[j], qr[j],
+                                          Val(pb.singular), Val(true))
+            else
+                du[idx] = u[idx]
+            end
         end
 
         if pb.markers_micro[i]
@@ -86,7 +97,7 @@ function assemble_two_scale!(du, u, pb::ProblemDefinition{m, npde, singular}, t)
     idx_last = 1 + (pb.Nx - 1) * npde + cpt_marker * pb.Nr
     for i ∈ 1:npde
         idx = idx_last + i - 1
-        @views assemble_right_bd!(du, u, pb.Nx, idx, pb, cl[i], fl[i], sl[i], pr[i], qr[i],
+        @views assemble_right_bd!(du, u, idx, m, pb.xmesh[end], pb.ξ[end], pb.ζ[end], cl[i], fl[i], sl[i], pr[i], qr[i],
                                   Val(pb.singular), Val(pb.markers_macro[pb.Nx, i]))
     end
 

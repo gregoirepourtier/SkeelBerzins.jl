@@ -39,7 +39,8 @@ solution at any time step within the interval ``(t_0,t_{end})`` (accessible usin
 A spatial interpolation similar as the [`pdeval`](@ref) function is available on the solution object
 using the command `sol(x_eval,t,pb)`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), mr=nothing,
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), # kwargs...) where {T1, T2, T3}
+               mr=nothing,
                rmesh=nothing,
                pdefun_micro::T4=nothing,
                icfun_micro::T5=nothing,
@@ -65,8 +66,10 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
     @assert params.tstep≠Inf "Adjust time step or try the alternative method for solving elliptic problems"
 
     # Initialize Problem
-    Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params, pdefun_micro,
-                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_micro;
+    Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params,
+                                                  pdefun_micro,
+                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
+                                                  markers_micro;
                                                   kwargs...)
 
     # Solve time dependent problem via Implicit Euler method
@@ -161,14 +164,14 @@ Keyword argument:
 Returns a 1D Array with the solution available at the points defined by the spatial discretization
 `xmesh`.
 """
-# function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.Params(; tstep=Inf), kwargs...) where {T1, T2, T3}
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.Params(; tstep=Inf), mr=nothing, rmesh=nothing,
-               pdefun_micro::T4=nothing,
-               icfun_micro::T5=nothing,
-               bdfun_micro::T6=nothing,
-               coupling_macro::T7=nothing,
-               coupling_micro::T8=nothing,
-               markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.Params(; tstep=Inf), kwargs...) where {T1, T2, T3}
+    #    mr=nothing, rmesh=nothing,
+    #    pdefun_micro::T4=nothing,
+    #    icfun_micro::T5=nothing,
+    #    bdfun_micro::T6=nothing,
+    #    coupling_macro::T7=nothing,
+    #    coupling_micro::T8=nothing,
+    #    markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
               tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : Inf,
@@ -183,9 +186,11 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
     @assert params.tstep==Inf "Time step should be set to Inf to obtain the stationary solution"
 
     # Initialize Problem
-    Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, (0, 1), pdefun, icfun, bdfun, params, pdefun_micro,
-                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_micro;
-                                                  kwargs...)
+    Nx, npde, inival, elTv, Ti, pb = problem_init_one_scale(m, mr, xmesh, rmesh, (0, 1), pdefun, icfun, bdfun, params,
+                                                            pdefun_micro,
+                                                            icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
+                                                            markers_micro;
+                                                            kwargs...)
 
     colors = matrix_colors(pb.jac)::Vector{Ti}
 
@@ -205,4 +210,18 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
     end
 
     return unP1
+end
+
+"""
+    solve_two_scale(m, pdefun, icfun, bdfun, rmesh, tspan, pb; params=SkeelBerzins.Params, kwargs...)
+
+Solve two-scale PDE problems.
+
+Input arguments:
+
+  - `m`
+  - `pdefun`
+"""
+function solve_two_scale(m, pdefun, icfun, bdfun, rmesh, tspan, pb; params=SkeelBerzins.Params(), kwargs...)
+
 end
