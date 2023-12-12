@@ -20,6 +20,8 @@ include("utils.jl")
 export Params
 export pdeval
 
+include("problem_definition.jl")
+
 include("bd_assembler.jl")
 include("local_assembler.jl")
 include("assembler_one_scale.jl")

@@ -106,120 +106,6 @@ end
 """
 $(TYPEDEF)
 
-Structure storing the problem definition.
-
-$(TYPEDFIELDS)
-"""
-mutable struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: Number, elTv <: Number,
-                                 pdeFunction <: Function, pdeFunction_micro <: Union{Function, Nothing},
-                                 icFunction <: Function, icFunction_micro <: Union{Function, Nothing},
-                                 bdFunction <: Function, bdFunction_micro <: Union{Function, Nothing},
-                                 Coupling_macro <: Union{Function, Nothing}, Coupling_micro <: Union{Function, Nothing}}
-    """
-    Number of unknowns
-    """
-    npde::Ti
-
-    npde_micro::Ti
-
-    """
-    Number of discretization points
-    """
-    Nx::Ti
-
-    Nr::Ti
-
-    Nx_marked::Ti
-
-    """
-    Grid of the problem
-    """
-    xmesh::Tv
-
-    rmesh::Tv
-
-    xmesh_marked::Vector{elTv}
-
-    """
-    Time interval
-    """
-    tspan::Tuple{Tm, Tm}
-
-    """
-    Flag to know if the problem is singular or not
-    """
-    singular::Bool
-
-    singular_micro::Bool
-
-    """
-    Symmetry of the problem
-    """
-    m::Ti
-
-    mr::Union{Nothing, Ti}
-
-    """
-    Jacobi matrix
-    """
-    jac::Union{SparseMatrixCSC{elTv, Ti}, BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}}
-
-    """
-    Evaluation of the initial condition
-    """
-    inival::Vector{elTv}
-
-    """
-    Interpolation points from the paper
-    """
-    ξ::Vector{elTv}
-    ζ::Vector{elTv}
-
-    ξ_micro::Vector{elTv}
-    ζ_micro::Vector{elTv}
-
-    """
-    Function defining the coefficients of the PDE
-    """
-    pdefunction::pdeFunction
-
-    """
-    Function defining the initial condition
-    """
-    icfunction::icFunction
-
-    """
-    Function defining the boundary conditions
-    """
-    bdfunction::bdFunction
-
-    pdefunction_micro::pdeFunction_micro
-    icfunction_micro::icFunction_micro
-    bdfunction_micro::bdFunction_micro
-
-    coupling_macro::Coupling_macro
-    coupling_micro::Coupling_micro
-
-    markers_macro::Union{Vector{Bool}, Matrix{Bool}}
-    markers_micro::Union{Nothing, Vector{Bool}}
-
-    function ProblemDefinition{T1, T2, T3, Tv, Ti, Tm, elTv, pdeFunction, pdeFunction_micro, icFunction, icFunction_micro,
-                               bdFunction, bdFunction_micro, Coupling_macro, Coupling_micro}() where {T1, T2, T3, Tv, Ti, Tm,
-                                                                                                      elTv, pdeFunction,
-                                                                                                      pdeFunction_micro,
-                                                                                                      icFunction,
-                                                                                                      icFunction_micro,
-                                                                                                      bdFunction,
-                                                                                                      bdFunction_micro,
-                                                                                                      Coupling_macro,
-                                                                                                      Coupling_micro}
-        new()
-    end
-end
-
-"""
-$(TYPEDEF)
-
 Structure containing all the keyword arguments for the solver [`pdepe`](@ref).
 
 $(TYPEDFIELDS)
@@ -628,16 +514,88 @@ end
 (sol::AbstractDiffEqArray)(t) = interpolate_sol_time(sol, t)
 
 """
-    problem_init(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params, pdefun_micro, icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_macro, markers_micro)
+    problem_init_one_scale(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params; kwargs...)
 
 Function initializing the problem.
 
 Returns the size of the space discretization Nx, the number of PDEs npde, the initial value inival,
 some data types elTv and Ti, and the struct containing the problem definition pb.
 """
-function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params, pdefun_micro::T4, icfun_micro::T5,
-                      bdfun_micro::T6, coupling_macro::T7, coupling_micro::T8,
-                      markers_micro; kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
+function problem_init_one_scale(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params; kwargs...) where {T1, T2, T3}
+
+    # Size of the space discretization
+    Nx = length(xmesh)
+
+    # Regular case: m=0 or a>0 (Galerkin method)
+    # Singular case: m≥1 and a=0 (Petrov-Galerkin method)
+    singular = m ≥ 1 && xmesh[1] == 0
+
+    α = @view xmesh[1:(end - 1)]
+    β = @view xmesh[2:end]
+    γ = (α .+ β) ./ 2
+
+    ξ, ζ = get_quad_points_weights(m, α, β, γ, singular)
+
+    Tv = typeof(xmesh)
+    elTv = eltype(xmesh)
+    Tm = eltype(tspan)
+
+    # Number of unknows in the PDE problem
+    npde = length(icfun(xmesh[1]))
+
+    markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
+
+    # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
+    inival = npde == 1 ? icfun.(xmesh) : vec(reduce(hcat, icfun.(xmesh)))
+
+    Ti = eltype(npde)
+
+    pb = ProblemDefinitionOneScale{m, npde, singular, Tv, Ti, Tm, elTv, T1, T2, T3}()
+
+    pb.npde = npde
+    pb.Nx = Nx
+    pb.xmesh = xmesh
+    pb.tspan = tspan
+    pb.singular = singular
+    pb.m = m
+    pb.inival = inival
+    pb.ξ = ξ
+    pb.ζ = ζ
+
+    pb.pdefunction = pdefun
+    pb.icfunction = icfun
+    pb.bdfunction = bdfun
+
+    pb.markers_macro = markers_macro
+
+    # Choosing how to initialize the jacobian with sparsity pattern
+    if params.sparsity == :sparseArrays
+        Tjac = SparseMatrixCSC{elTv, Ti}
+        pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
+    elseif params.sparsity == :banded
+        Tjac = BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}
+        pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
+    elseif params.sparsity == :symb # remove for one scale problem? Inefficient…
+        du0 = copy(inival)
+        pb.jac = elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble!(du, u, pb, 0.0), du0, inival))
+    else
+        throw("Error: Invalid sparsity pattern selected. Please choose from the available options: :sparseArrays, :banded")
+    end
+
+    Nx, npde, inival, elTv, Ti, pb
+end
+
+"""
+    problem_init_two_scale(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params, pdefun_micro, icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_micro; kwargs...)
+
+Function initializing the problem.
+
+Returns the size of the space discretization Nx, the number of PDEs npde, the initial value inival,
+some data types elTv and Ti, and the struct containing the problem definition pb.
+"""
+function problem_init_two_scale(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params, pdefun_micro::T4,
+                                icfun_micro::T5, bdfun_micro::T6, coupling_macro::T7, coupling_micro::T8, markers_micro;
+                                kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     # Size of the space discretization
     Nx = length(xmesh)
@@ -738,7 +696,7 @@ function problem_init(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::
 
         pb.markers_micro = markers_micro
         pb.Nx_marked = nx_marked
-        pb.xmesh_marked = xmesh_marked
+        # pb.xmesh_marked = xmesh_marked
     end
 
     # Choosing how to initialize the jacobian with sparsity pattern
@@ -844,10 +802,7 @@ end
 
 Function that provides the sparsity pattern in a SparseMatrixCSC.
 """
-function get_sparsity_pattern(::Type{TMat},
-                              Nx,
-                              npde,
-                              elTv) where {TMat <: SparseArrays.AbstractSparseMatrixCSC}
+function get_sparsity_pattern(::Type{TMat}, Nx, npde, elTv) where {TMat <: SparseArrays.AbstractSparseMatrixCSC}
     row = Int64[]
     column = Int64[]
     vals = elTv[]
@@ -885,10 +840,7 @@ end
 
 Function that provides the sparsity pattern in a BandedMatrix.
 """
-function get_sparsity_pattern(::Type{TMat},
-                              Nx,
-                              npde,
-                              elTv) where {TMat <: BandedMatrices.AbstractBandedMatrix}
+function get_sparsity_pattern(::Type{TMat}, Nx, npde, elTv) where {TMat <: BandedMatrices.AbstractBandedMatrix}
     jac = BandedMatrix{elTv}(Ones(Nx * npde, Nx * npde), (2 * npde - 1, 2 * npde - 1)) # Not working for general numeric datatypes
 
     jac

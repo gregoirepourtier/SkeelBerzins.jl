@@ -39,15 +39,15 @@ solution at any time step within the interval ``(t_0,t_{end})`` (accessible usin
 A spatial interpolation similar as the [`pdeval`](@ref) function is available on the solution object
 using the command `sol(x_eval,t,pb)`.
 """
-function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), # kwargs...) where {T1, T2, T3}
-               mr=nothing,
-               rmesh=nothing,
-               pdefun_micro::T4=nothing,
-               icfun_micro::T5=nothing,
-               bdfun_micro::T6=nothing,
-               coupling_macro::T7=nothing,
-               coupling_micro::T8=nothing,
-               markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
+function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), kwargs...) where {T1, T2, T3}
+    #    mr=nothing,
+    #    rmesh=nothing,
+    #    pdefun_micro::T4=nothing,
+    #    icfun_micro::T5=nothing,
+    #    bdfun_micro::T6=nothing,
+    #    coupling_macro::T7=nothing,
+    #    coupling_micro::T8=nothing,
+    #    markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
               tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : params.tstep,
@@ -66,11 +66,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
     @assert params.tstep≠Inf "Adjust time step or try the alternative method for solving elliptic problems"
 
     # Initialize Problem
-    Nx, npde, inival, elTv, Ti, pb = problem_init(m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params,
-                                                  pdefun_micro,
-                                                  icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
-                                                  markers_micro;
-                                                  kwargs...)
+    Nx, npde, inival, elTv, Ti, pb = problem_init_one_scale(m, xmesh, tspan, pdefun, icfun, bdfun, params; kwargs...)
+    # (m, mr, xmesh, rmesh, tspan, pdefun, icfun, bdfun, params, pdefun_micro, icfun_micro, bdfun_micro, coupling_macro, coupling_micro, markers_micro; kwargs...)
 
     # Solve time dependent problem via Implicit Euler method
     if params.solver == :euler
@@ -165,13 +162,6 @@ Returns a 1D Array with the solution available at the points defined by the spat
 `xmesh`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.Params(; tstep=Inf), kwargs...) where {T1, T2, T3}
-    #    mr=nothing, rmesh=nothing,
-    #    pdefun_micro::T4=nothing,
-    #    icfun_micro::T5=nothing,
-    #    bdfun_micro::T6=nothing,
-    #    coupling_macro::T7=nothing,
-    #    coupling_micro::T8=nothing,
-    #    markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
               tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : Inf,
@@ -186,11 +176,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
     @assert params.tstep==Inf "Time step should be set to Inf to obtain the stationary solution"
 
     # Initialize Problem
-    Nx, npde, inival, elTv, Ti, pb = problem_init_one_scale(m, mr, xmesh, rmesh, (0, 1), pdefun, icfun, bdfun, params,
-                                                            pdefun_micro,
-                                                            icfun_micro, bdfun_micro, coupling_macro, coupling_micro,
-                                                            markers_micro;
-                                                            kwargs...)
+    Nx, npde, inival, elTv, Ti, pb = problem_init_one_scale(m, xmesh, (0, 1), pdefun, icfun, bdfun, params; kwargs...)
 
     colors = matrix_colors(pb.jac)::Vector{Ti}
 
@@ -222,6 +208,26 @@ Input arguments:
   - `m`
   - `pdefun`
 """
-function solve_two_scale(m, pdefun, icfun, bdfun, rmesh, tspan, pb; params=SkeelBerzins.Params(), kwargs...)
+function solve_two_scale(m, pdefun::T1, icfun::T2, bdfun::T3, rmesh, tspan, pb, coupling_macro::T4,
+                         coupling_micro::T5; params=SkeelBerzins.Params(), kwargs...) where {T1, T2, T3, T4, T5}
+
+    #    markers_micro=nothing, kwargs...)
+    params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
+              tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : params.tstep,
+              hist=haskey(kwargs, :hist) ? kwargs[:hist] : params.hist,
+              sparsity=haskey(kwargs, :sparsity) ? kwargs[:sparsity] : params.sparsity,
+              linsolve=haskey(kwargs, :linsolve) ? kwargs[:linsolve] : params.linsolve,
+              maxit=haskey(kwargs, :maxit) ? kwargs[:maxit] : params.maxit,
+              tol=haskey(kwargs, :tol) ? kwargs[:tol] : params.tol,
+              data=haskey(kwargs, :data) ? kwargs[:data] : params.data)
+
+    # Check if the paramater m is valid
+    @assert m == 0||m == 1 || m == 2 "Parameter m invalid"
+    # Check conformity of the mesh with respect to the given symmetry
+    @assert m == 0||m > 0 && xmesh[1] ≥ 0 "Non-conforming mesh"
+    # Check validity of time step
+    @assert params.tstep≠Inf "Adjust time step or try the alternative method for solving elliptic problems"
+
+
 
 end

@@ -2,7 +2,7 @@
 # Assemble the system of differential equations (operator and mass matrix) for two-scale problems.
 
 """
-    assemble_two_scale!(du, u, problem, t)
+    assemble!(du, u, problem, t)
 
 Performs space discretization for two-scale problems following the difference equations described in [1].
 
@@ -16,7 +16,7 @@ where the input `problem` is defined as a [`SkeelBerzins.ProblemDefinition`](@re
 
 This function is specified in a way that it is compatible with the DifferentialEquations.jl package.
 """
-function assemble_two_scale!(du, u, pb::ProblemDefinition{m, npde, singular}, t) where {m, npde, singular}
+function assemble!(du, u, pb::ProblemDefinitionTwoScale{m, npde, singular}, t) where {m, npde, singular}
 
     # Evaluate the boundary conditions of the problem and interpolate u and du/dx for the first interval of the discretization
     if npde == 1
@@ -112,7 +112,7 @@ function assemble_two_scale!(du, u, pb::ProblemDefinition{m, npde, singular}, t)
 end
 
 """
-    mass_matrix_two_scale(problem)
+    mass_matrix(problem)
 
 Assemble the diagonal mass matrix M of the system of differential equations when solving a two-scale
 problem with at least one parabolic PDE. The coefficients from M either take the value 0 or 1 since it is
@@ -122,7 +122,7 @@ The entries of the matrix are set to 0 when the corresponding equation of the sy
 or the boundary condition is pure Dirichlet leading to solve a Differential-Algebraic system of Equations.
 In the case where the mass matrix is identity, we solve a system of ODEs.
 """
-function mass_matrix_two_scale(pb::ProblemDefinition{m, npde, singular}) where {m, npde, singular}
+function mass_matrix(pb::ProblemDefinitionTwoScale{m, npde, singular}) where {m, npde, singular}
 
     inival = pb.inival
 

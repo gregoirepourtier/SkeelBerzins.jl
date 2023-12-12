@@ -19,25 +19,12 @@ Input argument:
 
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function DifferentialEquations.ODEFunction(pb::SkeelBerzins.ProblemDefinition)
-    if pb.Nr ≠ 0
-        massMatrix, flag_DAE = SkeelBerzins.mass_matrix_two_scale(pb)
-        if flag_DAE
-            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_two_scale!;
-                                              jac_prototype=pb.jac,
-                                              mass_matrix=massMatrix)
-        else
-            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_two_scale!; jac_prototype=pb.jac)
-        end
+function DifferentialEquations.ODEFunction(pb::SkeelBerzins.AbstractProblemDefinition)
+    massMatrix, flag_DAE = SkeelBerzins.mass_matrix(pb)
+    if flag_DAE
+        DifferentialEquations.ODEFunction(SkeelBerzins.assemble!; jac_prototype=pb.jac, mass_matrix=massMatrix)
     else
-        massMatrix, flag_DAE = SkeelBerzins.mass_matrix_one_scale(pb)
-        if flag_DAE
-            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!;
-                                              jac_prototype=pb.jac,
-                                              mass_matrix=massMatrix)
-        else
-            DifferentialEquations.ODEFunction(SkeelBerzins.assemble_one_scale!; jac_prototype=pb.jac)
-        end
+        DifferentialEquations.ODEFunction(SkeelBerzins.assemble!; jac_prototype=pb.jac)
     end
 end
 
@@ -52,7 +39,7 @@ Input arguments:
 
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function DifferentialEquations.ODEProblem(pb::SkeelBerzins.ProblemDefinition)
+function DifferentialEquations.ODEProblem(pb::SkeelBerzins.AbstractProblemDefinition)
     odefunction = DifferentialEquations.ODEFunction(pb)
     DifferentialEquations.ODEProblem(odefunction, pb.inival, pb.tspan, pb)
 end
@@ -66,48 +53,48 @@ the solution at time t as a 2D-Array of size (npde,Nx).
 Indeed since in the spatial discretization, we flattened the problem, the solution has a similar size.
 So by reshaping the solution, we get a solution organised by unknows.
 """
-function Base.reshape(sol::AbstractDiffEqArray, pb::SkeelBerzins.ProblemDefinition)
-    if pb.Nr == 0
-        RecursiveArrayTools.DiffEqArray([reshape(sol.u[i], (pb.npde, pb.Nx)) for i ∈ 1:length(sol.u)],
-                                        sol.t)
-    else
-        solutions = RecursiveArrayTools.DiffEqArray[]
-        total = pb.Nx * pb.npde + pb.Nx_marked * pb.Nr
-        index_macro = zeros(Bool, (pb.npde, total))
-        index_micro = zeros(Bool, (pb.Nx_marked, total))
+function Base.reshape(sol::AbstractDiffEqArray, pb::SkeelBerzins.ProblemDefinitionTwoScale)
+    solutions = RecursiveArrayTools.DiffEqArray[]
+    total = pb.Nx * pb.npde + pb.Nx_marked * pb.Nr
+    index_macro = zeros(Bool, (pb.npde, total))
+    index_micro = zeros(Bool, (pb.Nx_marked, total))
 
-        for j ∈ 1:(pb.npde)
-            k = j
-            for i ∈ 1:(pb.Nx)
-                index_macro[j, k] = true
+    for j ∈ 1:(pb.npde)
+        k = j
+        for i ∈ 1:(pb.Nx)
+            index_macro[j, k] = true
 
-                if pb.markers_micro[i]
-                    k += pb.npde + pb.Nr
-                else
-                    k += pb.npde
-                end
-            end
-            push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][index_macro[j, :]] for i ∈ 1:length(sol.u)], sol.t))
-        end
-
-        cpt_marker = 1
-        k = pb.npde + 1
-        for idx ∈ 1:(pb.Nx)
-            if pb.markers_micro[idx]
-                index_micro[cpt_marker, k:(k + pb.Nr - 1)] .= true
-
-                push!(solutions,
-                      RecursiveArrayTools.DiffEqArray([sol.u[i][index_micro[cpt_marker, :]] for i ∈ 1:length(sol.u)], sol.t))
-
-                cpt_marker += 1
+            if pb.markers_micro[i]
                 k += pb.npde + pb.Nr
             else
                 k += pb.npde
             end
         end
-
-        solutions
+        push!(solutions, RecursiveArrayTools.DiffEqArray([sol.u[i][index_macro[j, :]] for i ∈ 1:length(sol.u)], sol.t))
     end
+
+    cpt_marker = 1
+    k = pb.npde + 1
+    for idx ∈ 1:(pb.Nx)
+        if pb.markers_micro[idx]
+            index_micro[cpt_marker, k:(k + pb.Nr - 1)] .= true
+
+            push!(solutions,
+                  RecursiveArrayTools.DiffEqArray([sol.u[i][index_micro[cpt_marker, :]] for i ∈ 1:length(sol.u)], sol.t))
+
+            cpt_marker += 1
+            k += pb.npde + pb.Nr
+        else
+            k += pb.npde
+        end
+    end
+
+    solutions
+end
+
+function Base.reshape(sol::AbstractDiffEqArray, pb::SkeelBerzins.ProblemDefinitionOneScale)
+    RecursiveArrayTools.DiffEqArray([reshape(sol.u[i], (pb.npde, pb.Nx)) for i ∈ 1:length(sol.u)],
+                                    sol.t)
 end
 
 end
