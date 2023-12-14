@@ -12,7 +12,7 @@ Assemble the right-hand side ``f`` to generate an ODE/DAE problem:
 (M) \\frac{du}{dt} = f(u,problem,t)
 ```
 
-where the input `problem` is defined as a [`SkeelBerzins.ProblemDefinition`](@ref) structure.
+where the input `problem` is defined as a [`SkeelBerzins.ProblemDefinitionOneScale`](@ref) structure.
 
 This function is specified in a way that it is compatible with the DifferentialEquations.jl package.
 """

@@ -15,28 +15,28 @@ Input arguments:
   - `quadrature_point`: quadrature point chosen according to the method described in [1].
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-@inline function interpolation(xl, ul, xr, ur, qd_point, pb)
-    if pb.singular
+@inline function interpolation(xl, ul, xr, ur, qd_point, m, singular)
+    if singular
         h = xr^2 - xl^2
         tmp = qd_point^2 - xl^2
 
         u = ul * (1 - (tmp / h)) + ur * (tmp / h)
         dudx = (2 * qd_point * (ur - ul)) / h
 
-    elseif pb.m == 0
+    elseif m == 0
         h = xr - xl
 
         u = (ul * (xr - qd_point) + ur * (qd_point - xl)) / h
         dudx = (ur - ul) / h
 
-    elseif pb.m == 1
+    elseif m == 1
         tmp = log(xr / xl)
         test_fct = log(qd_point / xl) / tmp
 
         u = ul * (1 - test_fct) + ur * test_fct
         dudx = (ur - ul) / (qd_point * tmp)
 
-    elseif pb.m == 2
+    elseif m == 2
         h = xr - xl
         test_fct = (xr * (qd_point - xl)) / (qd_point * h)
 
@@ -593,128 +593,94 @@ Function initializing the problem.
 Returns the size of the space discretization Nx, the number of PDEs npde, the initial value inival,
 some data types elTv and Ti, and the struct containing the problem definition pb.
 """
-function problem_init_two_scale(m, mr, xmesh, rmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params, pdefun_micro::T4,
-                                icfun_micro::T5, bdfun_micro::T6, coupling_macro::T7, coupling_micro::T8, markers_micro;
-                                kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
+function problem_init_two_scale(mr, rmesh, params, pb, pdefun_micro::T1, bdfun_micro::T2, icfun_micro::T3, coupling_macro::T4,
+                                coupling_micro::T5; kwargs...) where {T1, T2, T3, T4, T5}
 
-    # Size of the space discretization
-    Nx = length(xmesh)
+    # Size of the micro-scale discretization
+    Nr = length(rmesh)
 
-    # Regular case: m=0 or a>0 (Galerkin method)
-    # Singular case: m≥1 and a=0 (Petrov-Galerkin method)
-    singular = m ≥ 1 && xmesh[1] == 0
+    markers_micro = haskey(kwargs, :markers_micro) ? kwargs[:markers_micro] : ones(Bool, Nx)
 
-    α = @view xmesh[1:(end - 1)]
-    β = @view xmesh[2:end]
-    γ = (α .+ β) ./ 2
+    # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
+    singular_micro = mr ≥ 1 && rmesh[1] == 0
 
-    ξ, ζ = get_quad_points_weights(m, α, β, γ, singular)
+    α_micro = @view rmesh[1:(end - 1)]
+    β_micro = @view rmesh[2:end]
+    γ_micro = (α_micro .+ β_micro) ./ 2
 
-    Tv = typeof(xmesh)
-    elTv = eltype(xmesh)
-    Tm = eltype(tspan)
+    ξ_micro, ζ_micro = get_quad_points_weights(mr, α_micro, β_micro, γ_micro, singular_micro)
 
-    # Number of unknows in the PDE problem
-    npde = length(icfun(xmesh[1]))
+    # Number of unknows for the micro-scale problem
+    npde_micro = length(icfun_micro(pb.xmesh[1], rmesh[1]))
 
-    markers_macro = haskey(kwargs, :markers_macro) ? kwargs[:markers_macro] : ones(Bool, Nx, npde)
+    nx_marked = length(pb.xmesh[markers_micro])
 
-    # Reshape inival as a 1D array for compatibility with the solvers from DifferentialEquations.jl
-    inival = npde == 1 ? icfun.(xmesh) : vec(reduce(hcat, icfun.(xmesh)))
+    Tv = typeof(rmesh)
+    elTv = eltype(rmesh)
 
-    Ti = eltype(npde)
+    Ti = eltype(npde_micro)
+    Tm = eltype(pb.tspan)
 
-    # Micro-Scale
-    Nr = 0
-    inival_micro = nothing
+    inival_micro = [icfun_micro(i, j) for j ∈ rmesh, i ∈ pb.xmesh][:, markers_micro]
 
-    if mr !== nothing
-        markers_micro === nothing ? markers_micro = ones(Bool, Nx) : nothing
+    inival = init_inival(pb.inival, inival_micro, pb.Nx, Nr, pb.npde, markers_micro, nx_marked, elTv)
 
-        # Check if the paramater m is valid
-        @assert mr == 0||mr == 1 || mr == 2 "Parameter mr invalid"
-        # Check conformity of the mesh with respect to the given symmetry
-        @assert mr == 0||mr > 0 && rmesh[1] ≥ 0 "Non-conforming mesh"
+    pb_micro = ProblemDefinitionTwoScale{pb.m, pb.npde, pb.singular, mr, npde_micro, singular_micro, Tv, Ti, Tm, elTv,
+                                         typeof(pb.pdefunction), T1, typeof(pb.bdfunction), T2, T4, T5}()
 
-        # Size of the micro-scale discretization
-        Nr = length(rmesh)
+    pb_micro.npde_macro = pb.npde
+    pb_micro.npde_micro = npde_micro # only considered for npde_micro=1 at the moment
 
-        # Regular case: m=0 or a>0 (Galerkin method) ; Singular case: m≥1 and a=0 (Petrov-Galerkin method)
-        singular_micro = mr ≥ 1 && rmesh[1] == 0
+    pb_micro.Nx = pb.Nx
+    pb_micro.Nr = Nr
 
-        α_micro = @view rmesh[1:(end - 1)]
-        β_micro = @view rmesh[2:end]
-        γ_micro = (α_micro .+ β_micro) ./ 2
+    pb_micro.Nx_marked = nx_marked
 
-        ξ_micro, ζ_micro = get_quad_points_weights(mr, α_micro, β_micro, γ_micro, singular_micro)
+    pb_micro.xmesh = pb.xmesh
+    pb_micro.rmesh = rmesh
 
-        # Number of unknows for the micro-scale problem
-        npde_micro = length(icfun_micro(xmesh[1], rmesh[1]))
+    pb_micro.tspan = pb.tspan
 
-        inival_micro = [icfun_micro(i, j) for j ∈ rmesh, i ∈ xmesh][:, markers_micro]
-        xmesh_marked = xmesh[markers_micro]
-        nx_marked = length(xmesh_marked)
-    end
+    pb_micro.singular_macro = pb.singular
+    pb_micro.singular_micro = singular_micro
 
-    @assert Nr == 0 && mr === nothing||Nr > 0 "Number of meshpoint for the micro equations insufficient"
+    pb_micro.mx = pb.m
+    pb_micro.mr = mr
 
-    inival = Nr == 0 ? inival : init_inival(inival, inival_micro, Nx, Nr, npde, markers_micro, nx_marked, elTv)
+    pb_micro.inival = inival
 
-    pb = ProblemDefinition{m, npde, singular, Tv, Ti, Tm, elTv, T1, T4, T2, T5, T3, T6, T7, T8}()
+    pb_micro.ξ_macro = pb.ξ
+    pb_micro.ξ_micro = ξ_micro
+    pb_micro.ζ_macro = pb.ζ
+    pb_micro.ζ_micro = ζ_micro
 
-    pb.npde = npde
-    pb.Nx = Nx
-    pb.xmesh = xmesh
-    pb.tspan = tspan
-    pb.singular = singular
-    pb.m = m
-    pb.inival = inival
-    pb.ξ = ξ
-    pb.ζ = ζ
+    pb_micro.pdefunction_macro = pb.pdefunction
+    pb_micro.pdefunction_micro = pdefun_micro
 
-    pb.pdefunction = pdefun
-    pb.icfunction = icfun
-    pb.bdfunction = bdfun
+    pb_micro.bdfunction_macro = pb.bdfunction
+    pb_micro.bdfunction_micro = bdfun_micro
 
-    pb.markers_macro = markers_macro
+    pb_micro.coupling_macro = coupling_macro
+    pb_micro.coupling_micro = coupling_micro
 
-    pb.Nr = Nr
-    if mr !== nothing
-        pb.npde_micro = npde_micro # only considered for npde_micro=1 at the moment
-        pb.rmesh = rmesh
-        pb.singular_micro = singular_micro
-        pb.mr = mr
-
-        pb.pdefunction_micro = pdefun_micro
-        pb.icfunction_micro = icfun_micro
-        pb.bdfunction_micro = bdfun_micro
-
-        pb.coupling_macro = coupling_macro
-        pb.coupling_micro = coupling_micro
-
-        pb.ξ_micro, pb.ζ_micro = get_quad_points_weights(mr, α_micro, β_micro, γ_micro, singular_micro)
-
-        pb.markers_micro = markers_micro
-        pb.Nx_marked = nx_marked
-        # pb.xmesh_marked = xmesh_marked
-    end
+    pb_micro.markers_macro = pb.markers_macro
+    pb_micro.markers_micro = markers_micro
 
     # Choosing how to initialize the jacobian with sparsity pattern
     if params.sparsity == :sparseArrays
         Tjac = SparseMatrixCSC{elTv, Ti}
-        pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
+        pb_micro.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
     elseif params.sparsity == :banded
         Tjac = BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}
-        pb.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
+        pb_micro.jac = get_sparsity_pattern(Tjac, Nx, npde, elTv)
     elseif params.sparsity == :symb
         du0 = copy(inival)
-        pb.jac = Nr ≠ 0 ? elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble_two_scale!(du, u, pb, 0.0), du0, inival)) :
-                 elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble_one_scale!(du, u, pb, 0.0), du0, inival))
+        pb_micro.jac = elTv.(Symbolics.jacobian_sparsity((du, u) -> assemble!(du, u, pb_micro, 0.0), du0, inival))
     else
         throw("Error: Invalid sparsity pattern selected. Please choose from the available options: :sparseArrays, :banded")
     end
 
-    Nx, npde, inival, elTv, Ti, pb
+    Nr, npde_micro, inival, elTv, Ti, pb_micro
 end
 
 function init_inival(inival1, inival2, nx, nr, npde_x, markers, nx_marked, elTv)

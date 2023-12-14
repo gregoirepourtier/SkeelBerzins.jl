@@ -126,9 +126,7 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
         end
 
         return sol
-
-        # Use the DifferentialEquations.jl package to solve the system of differential equations 
-    elseif params.solver == :DiffEq
+    elseif params.solver == :DiffEq # Use the DifferentialEquations.jl package to solve the system of differential equations 
 
         # returns data from the problem to define an ODEProblem
         return pb
@@ -208,10 +206,9 @@ Input arguments:
   - `m`
   - `pdefun`
 """
-function solve_two_scale(m, pdefun::T1, icfun::T2, bdfun::T3, rmesh, tspan, pb, coupling_macro::T4,
+function solve_two_scale(m, pdefun::T1, icfun::T2, bdfun::T3, rmesh, pb_macro, coupling_macro::T4,
                          coupling_micro::T5; params=SkeelBerzins.Params(), kwargs...) where {T1, T2, T3, T4, T5}
 
-    #    markers_micro=nothing, kwargs...)
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
               tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : params.tstep,
               hist=haskey(kwargs, :hist) ? kwargs[:hist] : params.hist,
@@ -224,10 +221,17 @@ function solve_two_scale(m, pdefun::T1, icfun::T2, bdfun::T3, rmesh, tspan, pb, 
     # Check if the paramater m is valid
     @assert m == 0||m == 1 || m == 2 "Parameter m invalid"
     # Check conformity of the mesh with respect to the given symmetry
-    @assert m == 0||m > 0 && xmesh[1] ≥ 0 "Non-conforming mesh"
+    @assert m == 0||m > 0 && rmesh[1] ≥ 0 "Non-conforming mesh"
     # Check validity of time step
     @assert params.tstep≠Inf "Adjust time step or try the alternative method for solving elliptic problems"
 
+    Nx, npde, inival, elTv, Ti, pb_micro = problem_init_two_scale(m, rmesh, params, pb_macro, pdefun, bdfun, icfun, coupling_macro,
+                                                                  coupling_micro; kwargs...)
 
-
+    # Solve time dependent problem via Implicit Euler method
+    if params.solver == :euler
+        throw("Not implemented yet")
+    elseif params.solver == :DiffEq # Use the DifferentialEquations.jl package to solve the system of differential equations 
+        return pb_micro
+    end
 end

@@ -15,6 +15,7 @@ using Symbolics
 
 include("pdepe.jl")
 export pdepe
+export solve_two_scale
 
 include("utils.jl")
 export Params
