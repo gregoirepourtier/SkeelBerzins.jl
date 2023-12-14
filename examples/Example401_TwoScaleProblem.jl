@@ -11,13 +11,13 @@ function pdefun_macro(x, t, u, dudx)
     return c, f, s
 end
 
-icfun_macro(x) = [0, 0, 0]
+icfun_macro(x) = SVector(0, 0, 0)
 
 function bdfun_macro(xl, ul, xr, ur, t)
-    pl = [ul[1] - 1.0, 0, ul[3]]
-    ql = [0, 1, 0]
-    pr = [0, ur[2], 0]
-    qr = [1, 0, 1]
+    pl = SVector(ul[1] - 1.0, 0, ul[3])
+    ql = SVector(0, 1, 0)
+    pr = SVector(0, ur[2], 0)
+    qr = SVector(1, 0, 1)
 
     return pl, ql, pr, qr
 end
@@ -60,22 +60,17 @@ function main_two_scale()
     coupling_micro(x, t, u, v) = -u[1] + v[end]
 
     params = SkeelBerzins.Params(; solver=:DiffEq, sparsity=:symb)
-    markers = [xmesh[i] < 0.3 || xmesh[i] > 0.6 for i ∈ eachindex(xmesh)]
 
-    pb = pdepe(m_x, pdefun_macro, icfun_macro, bdfun_macro, xmesh, tspan;
-               params=params,
-               mr=m_r,
-               rmesh=rmesh,
-               pdefun_micro=pdefun_micro,
-               icfun_micro=icfun_micro,
-               bdfun_micro=bdfun_micro,
-               coupling_macro=coupling_macro,
-               coupling_micro=coupling_micro,
-               markers_micro=markers)
-    problem = DifferentialEquations.ODEProblem(pb)
+    markers = [x_mesh[i] < 0.3 || x_mesh[i] > 0.6 for i ∈ eachindex(x_mesh)]
+
+    pb_macro = pdepe(m_x, pdefun_macro, icfun_macro, bdfun_macro, x_mesh, tspan; params=params)
+    pb_micro = solve_two_scale(m_r, pdefun_micro, icfun_micro, bdfun_micro, r_mesh, pb_macro, coupling_macro, coupling_micro;
+                               params=params, markers_micro=markers)
+
+    problem = DifferentialEquations.ODEProblem(pb_micro)
     sol = DifferentialEquations.solve(problem, Rosenbrock23())
 
-    return sol, pb, markers, pb.npde
+    return sol, pb_micro
 end
 
 using Test

@@ -40,14 +40,6 @@ A spatial interpolation similar as the [`pdeval`](@ref) function is available on
 using the command `sol(x_eval,t,pb)`.
 """
 function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBerzins.Params(), kwargs...) where {T1, T2, T3}
-    #    mr=nothing,
-    #    rmesh=nothing,
-    #    pdefun_micro::T4=nothing,
-    #    icfun_micro::T5=nothing,
-    #    bdfun_micro::T6=nothing,
-    #    coupling_macro::T7=nothing,
-    #    coupling_micro::T8=nothing,
-    #    markers_micro=nothing, kwargs...) where {T1, T2, T3, T4, T5, T6, T7, T8}
 
     params = (solver=haskey(kwargs, :solver) ? kwargs[:solver] : params.solver,
               tstep=haskey(kwargs, :tstep) ? kwargs[:tstep] : params.tstep,
@@ -225,7 +217,8 @@ function solve_two_scale(m, pdefun::T1, icfun::T2, bdfun::T3, rmesh, pb_macro, c
     # Check validity of time step
     @assert params.tstep≠Inf "Adjust time step or try the alternative method for solving elliptic problems"
 
-    Nx, npde, inival, elTv, Ti, pb_micro = problem_init_two_scale(m, rmesh, params, pb_macro, pdefun, bdfun, icfun, coupling_macro,
+    Nx, npde, inival, elTv, Ti, pb_micro = problem_init_two_scale(m, rmesh, params, pb_macro, pdefun, bdfun, icfun,
+                                                                  coupling_macro,
                                                                   coupling_micro; kwargs...)
 
     # Solve time dependent problem via Implicit Euler method
