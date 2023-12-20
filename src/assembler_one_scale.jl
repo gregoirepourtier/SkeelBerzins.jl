@@ -21,7 +21,7 @@ function assemble!(du, u, pb::ProblemDefinitionOneScale{m, npde, singular}, t) w
     # Evaluate the boundary conditions of the problem and interpolate u and du/dx for the first interval of the discretization
     if npde == 1
         pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1], pb.xmesh[end], u[end], t)
-        interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2], pb.ξ[1], pb)
+        interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1], pb.xmesh[2], u[2], pb.ξ[1], pb.m, pb.singular)
     else
         @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], u[1:(pb.npde)], pb.xmesh[end], u[(end - pb.npde + 1):end], t)
         @views interpolant, d_interpolant = interpolation(pb.xmesh[1], u[1:(pb.npde)], pb.xmesh[2],
@@ -40,7 +40,7 @@ function assemble!(du, u, pb::ProblemDefinitionOneScale{m, npde, singular}, t) w
     for i ∈ 2:(pb.Nx - 1)
         interpolant, d_interpolant = pb.npde == 1 ?
                                      interpolation(pb.xmesh[i], u[1 + (i - 1) * pb.npde], pb.xmesh[i + 1], u[1 + i * pb.npde],
-                                                   pb.ξ[i], pb) :
+                                                   pb.ξ[i], pb.m, pb.singular) :
                                      interpolation(pb.xmesh[i], view(u, (1 + (i - 1) * pb.npde):(i * pb.npde)), pb.xmesh[i + 1],
                                                    view(u, (1 + i * pb.npde):((i + 1) * pb.npde)), pb.ξ[i],
                                                    Val(m), Val(singular), Val(npde))
@@ -99,7 +99,7 @@ function mass_matrix(pb::ProblemDefinitionOneScale{m, npde, singular}) where {m,
 
     if npde == 1
         pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1], pb.xmesh[end], inival[end], pb.tspan[1])
-        interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1], pb.xmesh[2], inival[2], pb.ξ[1], pb)
+        interpolant, d_interpolant = interpolation(pb.xmesh[1], inival[1], pb.xmesh[2], inival[2], pb.ξ[1], pb.m, pb.singular)
     else
         @views pl, ql, pr, qr = pb.bdfunction(pb.xmesh[1], inival[1:npde], pb.xmesh[end],
                                               inival[(end - npde + 1):end], pb.tspan[1])
