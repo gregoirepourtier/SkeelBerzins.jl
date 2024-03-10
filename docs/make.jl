@@ -26,7 +26,7 @@ function create_doc()
         module_examples_reformated[i] = Pair(tmp_new, mod[2])
     end
 
-    makedocs(; modules=[SkeelBerzins, Base.get_extension(SkeelBerzins, :SkeelBerzinsDiffEq)],
+    makedocs(; modules=[SkeelBerzins],
              sitename="SkeelBerzins.jl",
              checkdocs=:all,
              doctest=false, clean=false,

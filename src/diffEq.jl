@@ -1,9 +1,5 @@
-module SkeelBerzinsDiffEq
-
 # Enables SkeelBerzins.jl to create an ODEProblem and use the solvers
 # from DifferentialEquations.jl for solving transient problems
-
-using SkeelBerzins, DifferentialEquations
 
 """
     ODEFunction(problem)
@@ -19,14 +15,14 @@ Input argument:
 
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function DifferentialEquations.ODEFunction(pb::SkeelBerzins.ProblemDefinition)
+function SciMLBase.ODEFunction(pb::SkeelBerzins.ProblemDefinition)
     massMatrix, flag_DAE = SkeelBerzins.mass_matrix(pb)
     if flag_DAE
-        DifferentialEquations.ODEFunction(SkeelBerzins.assemble!;
+        SciMLBase.ODEFunction(SkeelBerzins.assemble!;
                                           jac_prototype=pb.jac,
                                           mass_matrix=massMatrix)
     else
-        DifferentialEquations.ODEFunction(SkeelBerzins.assemble!; jac_prototype=pb.jac)
+        SciMLBase.ODEFunction(SkeelBerzins.assemble!; jac_prototype=pb.jac)
     end
 end
 
@@ -41,9 +37,9 @@ Input arguments:
 
   - `problem`: Structure of type [`SkeelBerzins.ProblemDefinition`](@ref).
 """
-function DifferentialEquations.ODEProblem(pb::SkeelBerzins.ProblemDefinition)
-    odefunction = DifferentialEquations.ODEFunction(pb)
-    DifferentialEquations.ODEProblem(odefunction, pb.inival, pb.tspan, pb)
+function SciMLBase.ODEProblem(pb::SkeelBerzins.ProblemDefinition)
+    odefunction = SciMLBase.ODEFunction(pb)
+    SciMLBase.ODEProblem(odefunction, pb.inival, pb.tspan, pb)
 end
 
 """
@@ -58,6 +54,4 @@ So by reshaping the solution, we get a solution organised by unknows.
 function Base.reshape(sol::AbstractDiffEqArray, pb::SkeelBerzins.ProblemDefinition)
     RecursiveArrayTools.DiffEqArray([reshape(sol.u[i], (pb.npde, pb.Nx)) for i ∈ 1:length(sol.u)],
                                     sol.t)
-end
-
 end
