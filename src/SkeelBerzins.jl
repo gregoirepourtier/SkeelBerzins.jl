@@ -9,6 +9,8 @@ using RecursiveArrayTools
 using DocStringExtensions
 using Reexport
 
+using SciMLBase
+
 @reexport using LinearSolve
 @reexport using StaticArrays
 
@@ -21,8 +23,10 @@ export pdeval
 
 include("assembler.jl")
 
-if !isdefined(Base, :get_extension)
-    include("../ext/SkeelBerzinsDiffEq.jl")
-end
+include("diffEq.jl")
+
+# if !isdefined(Base, :get_extension)
+#     include("../ext/SkeelBerzinsDiffEq.jl")
+# end
 
 end # module
