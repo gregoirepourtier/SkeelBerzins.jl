@@ -47,7 +47,7 @@ function f(p)
         pl, ql, pr, qr
     end
 
-    params_pdepe = SkeelBerzins.Params(; solver=:DiffEq)
+    params_pdepe = SkeelBerzins.Params(; solver=:DiffEq, nb_design_var=length(p))
 
     pb = pdepe(m, pdefun, icfun, bcfun, collect(x), tspan; params=params_pdepe)
     prob = DifferentialEquations.ODEProblem(pb)
@@ -58,20 +58,16 @@ end
 
 function main()
     p = [1.0, 1.0] # True solution parameters
-    sol_exact = f(p)
+    sol_exact = Array(f(p))
 
     ## Building the Prediction Model
     ps = [0.1, 0.2]  # Initial guess for model parameters
-    function predict(θ)
-        sol = f(θ)
-        Array(sol)
-    end
+    predict(θ) = Array(f(θ))
 
     ## Defining Loss function
     function loss(θ)
         pred = predict(θ)
-        l = predict(θ) - sol_exact
-        return sum(abs2, l), pred # Mean squared error
+        return sum(abs2.(pred .- sol_exact)), pred # Mean squared error
     end
 
     LOSS = []     # Loss accumulator
@@ -79,7 +75,7 @@ function main()
     PARS = []     # parameters accumulator
 
     callback = function (θ, l, pred) # callback function to observe training
-        ## display(l)
+        display(l)
         append!(PRED, [pred])
         append!(LOSS, l)
         append!(PARS, [θ])
