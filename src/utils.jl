@@ -150,6 +150,11 @@ struct ProblemDefinition{T1, T2, T3, Tv <: AbstractVector, Ti <: Integer, Tm <: 
     jac::Union{SparseMatrixCSC{elTv, Ti}, BandedMatrix{elTv, Matrix{elTv}, Base.OneTo{Ti}}}
 
     """
+    Number of design variables for PDE Constrained Optimization
+    """
+    nb_design_var::Ti
+
+    """
     Evaluation of the initial condition
     """
     inival::Vector{elTv}
@@ -225,6 +230,11 @@ Base.@kwdef struct Params
     Returns the data of the PDE problem
     """
     data::Bool = false
+
+    """
+    Number of design variables for PDE Constrained Optimization
+    """
+    nb_design_var::Int = 0
 end
 
 """
@@ -564,7 +574,7 @@ Input arguments:
 """
 function interpolate_sol_time(u_approx, t)
     if isapprox(t, u_approx.t[1]; atol=1.0e-10 * abs(u_approx.t[2] - u_approx.t[1]))
-        return u_approx[1]
+        return u_approx[:,1]
     end
 
     idx = searchsortedfirst(u_approx.t, t)
@@ -574,13 +584,13 @@ function interpolate_sol_time(u_approx, t)
     end
 
     if t == u_approx.t[idx - 1]
-        return u_approx[idx - 1]
+        return u_approx[:,idx - 1]
     else
-        new_sol_interp = similar(u_approx[idx])
+        new_sol_interp = similar(u_approx[:,idx])
         dt = u_approx.t[idx] - u_approx.t[idx - 1]
         x1 = (u_approx.t[idx] - t) / dt
         x0 = (t - u_approx.t[idx - 1]) / dt
-        new_sol_interp .= x1 .* u_approx[idx - 1] .+ x0 .* u_approx[idx]
+        new_sol_interp .= x1 .* u_approx[:,idx - 1] .+ x0 .* u_approx[:,idx]
     end
 end
 
@@ -641,6 +651,7 @@ function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params)
                                                                             singular,
                                                                             m,
                                                                             jac,
+                                                                            params.nb_design_var,
                                                                             inival,
                                                                             ξ,
                                                                             ζ,
@@ -650,6 +661,8 @@ function problem_init(m, xmesh, tspan, pdefun::T1, icfun::T2, bdfun::T3, params)
 
     Nx, npde, inival, elTv, Ti, pb
 end
+
+Base.length(pb::SkeelBerzins.ProblemDefinition) = pb.nb_design_var
 
 """
     get_quad_points_weights(m, alpha, beta, gamma, singular)

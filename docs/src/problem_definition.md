@@ -2,7 +2,7 @@
 
 ## Problem format
 
-Before attempting to solve a problem described by partial differential equation(s), it is necessary 
+Before attempting to solve numerically a problem described by partial differential equation(s), it is necessary 
 to express the equation(s) in a form that can be understood and processed by the solver.
 
 Let us first define 1D discretization grids, for ``n \in \mathbb{N}``:
@@ -17,11 +17,11 @@ We then need to consider the following system of quasilinear partial differentia
 ```math
 c(x,t,u,u_x)u_t = x^{-m}(x^m f(x,t,u,u_x))_x + s(x,t,u,u_x)
 ```
-where ``m`` denotes the symmetry of the problem (``m=0``, ``m=1`` or ``m=2`` denoting cartesian, 
+where ``m`` designates the symmetry of the problem (``m=0``, ``m=1`` or ``m=2`` denoting cartesian, 
 polar cylindrical and polar spherical coordinates respectively), while the functions 
-``c(x,t,u,u_x)``, ``f(x,t,u,u_x)`` and ``s(x,t,u,u_x)`` represent the capacity term, the flux term 
-and the source term respectively.\
-The capacity term ``c(x,t,u,u_x)`` must be represented as a diagonal matrix (see 
+``c(x,t,u,u_x)``, ``f(x,t,u,u_x)`` and ``s(x,t,u,u_x)`` represent the capacity, flux 
+and source terms respectively.\
+The capacity term ``c(x,t,u,u_x)`` must be expressed as a diagonal matrix (see 
 [`SkeelBerzins.mass_matrix`](@ref)), this means that the relationship between the partial 
 derivatives with respect to time is limited to being multiplied by a diagonal matrix 
 ``c(x,t,u,u_x)``.
@@ -38,8 +38,8 @@ with ``i=1,\cdots,``npde (number of PDEs).
     The reference [[1]](index.md) states that if ``m>0`` then we require 
     ``a \geq 0`` for the method to work properly.
 
-The package is based on the spatial discretization method outlined in reference 
+The package is based on the spatial discretization method derived in reference 
 [[1]](index.md), which results in a second-order accurate method in space.
 
-Please refer to the section on solvers to understand how to implement the problem in the required 
+Please refer to the section on [solvers](solvers.md) to understand how to implement the problem in the required 
 format.

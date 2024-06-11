@@ -59,9 +59,9 @@ function main()
 
         @test sum(sol_DiffEq.u[end]) ≈ 3.7210048739504296
         @test eltype(eltype(sol_DiffEq_DF.u)) == eltype(eltype(sol_euler_DF.u)) == Double64
-        @test sum(sol_DiffEq_banded.u[end]) ≈ 3.702806314278916
+        @test sum(sol_DiffEq_banded.u[end]) ≈ 3.72100487395043
         @test sum(sol_euler_vecTstep.u[end]) ≈ sum(sol_euler_fixTstep.u[end]) ≈ 3.721004873950427
-        @test sum(sol_euler_banded.u[end]) ≈ 3.7210048106612303
+        @test sum(sol_euler_banded.u[end]) ≈ 3.7210048739504265
         @test sum(hist1) ≈ sum(hist2)
     else
         @test sum(sol_DiffEq.u[end]) ≈ 3.7210048739504296

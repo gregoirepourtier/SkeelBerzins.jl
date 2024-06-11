@@ -25,8 +25,4 @@ include("assembler.jl")
 
 include("diffEq.jl")
 
-# if !isdefined(Base, :get_extension)
-#     include("../ext/SkeelBerzinsDiffEq.jl")
-# end
-
 end # module

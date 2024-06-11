@@ -48,7 +48,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh, tspan; params=SkeelBe
               linsolve=haskey(kwargs, :linsolve) ? kwargs[:linsolve] : params.linsolve,
               maxit=haskey(kwargs, :maxit) ? kwargs[:maxit] : params.maxit,
               tol=haskey(kwargs, :tol) ? kwargs[:tol] : params.tol,
-              data=haskey(kwargs, :data) ? kwargs[:data] : params.data)
+              data=haskey(kwargs, :data) ? kwargs[:data] : params.data,
+              nb_design_var=haskey(kwargs, :nb_design_var) ? kwargs[:nb_design_var] : params.nb_design_var)
 
     # Check if the paramater m is valid
     @assert m == 0||m == 1 || m == 2 "Parameter m invalid"
@@ -161,7 +162,8 @@ function pdepe(m, pdefun::T1, icfun::T2, bdfun::T3, xmesh; params=SkeelBerzins.P
               linsolve=haskey(kwargs, :linsolve) ? kwargs[:linsolve] : params.linsolve,
               maxit=haskey(kwargs, :maxit) ? kwargs[:maxit] : params.maxit,
               tol=haskey(kwargs, :tol) ? kwargs[:tol] : params.tol,
-              data=haskey(kwargs, :data) ? kwargs[:data] : params.data)
+              data=haskey(kwargs, :data) ? kwargs[:data] : params.data,
+              nb_design_var=haskey(kwargs, :nb_design_var) ? kwargs[:nb_design_var] : params.nb_design_var)
 
     @assert params.solver==:euler "Elliptic problems can only be solved using the Euler method"
     @assert params.tstep==Inf "Time step should be set to Inf to obtain the stationary solution"
